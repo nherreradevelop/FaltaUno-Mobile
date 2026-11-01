@@ -21,7 +21,7 @@ function PantallasSegunSesion() {
       </Stack.Protected>
       {/* CU01 precondición: el login solo se ve sin sesión activa */}
       <Stack.Protected guard={sesion === null}>
-        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="login" />
       </Stack.Protected>
     </Stack>
   );

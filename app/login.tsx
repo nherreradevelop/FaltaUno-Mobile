@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import logoFaltaUno from '../../assets/logo-faltauno.png';
-import { iniciarSesion, iniciarSesionConGoogle } from '../../src/api/auth';
-import { ErrorApi } from '../../src/api/cliente';
-import { Boton } from '../../src/componentes/Boton';
-import { Campo } from '../../src/componentes/Campo';
-import { colores, fuentes } from '../../src/comun/tema';
-import { googleDisponible, obtenerIdTokenDeGoogle } from '../../src/sesion/google';
-import { MENSAJE_FALLA_GOOGLE, mensajeDeErrorDeGoogle, mensajeDeErrorDeLogin } from '../../src/sesion/mensajesLogin';
-import { useSesion } from '../../src/sesion/SesionContexto';
+import logoFaltaUno from '../assets/logo-faltauno.png';
+import { iniciarSesion, iniciarSesionConGoogle } from '../src/api/auth';
+import { ErrorApi } from '../src/api/cliente';
+import { Boton } from '../src/componentes/Boton';
+import { Campo } from '../src/componentes/Campo';
+import { colores, fuentes } from '../src/comun/tema';
+import { googleDisponible, obtenerIdTokenDeGoogle } from '../src/sesion/google';
+import { MENSAJE_FALLA_GOOGLE, mensajeDeErrorDeGoogle, mensajeDeErrorDeLogin } from '../src/sesion/mensajesLogin';
+import { useSesion } from '../src/sesion/SesionContexto';
 
 interface ErroresDeCampos {
   email?: string;
