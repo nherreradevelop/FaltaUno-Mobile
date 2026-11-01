@@ -22,24 +22,28 @@ Proyecto final de la carrera Analista en Tecnologías de la Información (Univer
 git clone https://github.com/nherreradevelop/FaltaUno-Mobile.git
 cd FaltaUno-Mobile
 npm install
+cp .env.example .env      # en PowerShell: Copy-Item .env.example .env
 ```
 
-## Crear el proyecto de Expo (una sola vez)
+## Ejecutar
 
-El proyecto va en la raíz del repositorio. Como la raíz ya tiene la configuración, la plantilla se crea en una carpeta aparte y se trae:
+Con la API corriendo en local:
 
-1. Fuera del repositorio: `npx create-expo-app@latest faltauno-mobile-tmp`
-2. Copiar a la raíz del repositorio todo lo de la plantilla **menos** `node_modules/`, `.git/`, `README.md`, `tsconfig.json`, `.gitignore` y su `eslint.config.js`.
-3. En el `package.json` del repositorio, agregar `main`, los scripts (`start`, `android`, `ios`, `web`) y las `dependencies` de la plantilla, y de sus `devDependencies` las que no sean de ESLint (`eslint-config-expo` no va).
-4. `npm install`, `npx expo start` y borrar la carpeta temporal.
+```bash
+npx expo start            # Expo Go: todo menos el login con Google
+npx expo run:ios          # development build (necesario para el login con Google)
+npx expo run:android
+npm run typecheck         # verificar tipos
+```
 
-En desarrollo, la dirección de la API se arma con la IP de la computadora que da Expo (`Constants.expoConfig.hostUri`) y el puerto 3000.
+Si `EXPO_PUBLIC_URL_API` queda vacía, en desarrollo la dirección de la API se arma con la IP de la computadora que da Expo (`Constants.expoConfig.hostUri`) y el puerto 3000.
+Las carpetas `android/` e `ios/` las genera `expo run` y no se suben al repositorio.
 
 ## Calidad de código
 
 - **Prettier** da el formato (`.prettierrc`) y **ESLint** revisa el código (`eslint.config.mjs`).
 - **Husky** ejecuta ambos sobre los archivos de cada commit (`lint-staged`). Si ESLint encuentra un error, el commit se cancela.
-- `tsconfig.json` combina la base de Expo con `tsconfig.base.json` (modo estricto). Hasta crear el proyecto, VS Code puede marcar que no encuentra `expo/tsconfig.base`.
+- `tsconfig.json` combina la base de Expo con `tsconfig.base.json` (modo estricto).
 
 ```bash
 npm run lint           # revisar todo el repositorio
@@ -50,7 +54,7 @@ npm run format:check   # verificar el formato sin modificar
 
 ## Integración continua
 
-GitHub Actions (`.github/workflows/ci.yml`) se ejecuta en cada pull request y push a `develop` o `main`: lint y formato siempre; verificación de tipos en cuanto exista `app.json`, y pruebas en cuanto exista el script `test`.
+GitHub Actions (`.github/workflows/ci.yml`) se ejecuta en cada pull request y push a `develop` o `main`: lint y formato siempre; verificación de tipos en cuanto exista `app.json` o `app.config.ts`, y pruebas en cuanto exista el script `test`.
 
 ## Forma de trabajo
 

@@ -1,8 +1,7 @@
 {
-  // App con React Native + Expo: combina la base de Expo con el modo estricto del repositorio
   "extends": ["expo/tsconfig.base", "./tsconfig.base.json"],
   "compilerOptions": {
     "strict": true
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx"]
 }

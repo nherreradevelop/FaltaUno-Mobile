@@ -27,6 +27,6 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - name: Verificar tipos
-        if: hashFiles('app.json') != ''
+        if: hashFiles('app.json', 'app.config.ts') != ''
         run: npx tsc --noEmit
       - run: npm test --if-present
