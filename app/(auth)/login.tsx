@@ -69,7 +69,8 @@ export default function PantallaLogin() {
     let idToken: string;
     try {
       idToken = await obtenerIdTokenDeGoogle();
-    } catch {
+    } catch (error) {
+      if (__DEV__) console.log('[google] falló al obtener el token de Google:', error);
       // CU01 ER2: Google falló o el usuario canceló
       setMensajeError(MENSAJE_FALLA_GOOGLE);
       return;
@@ -79,6 +80,7 @@ export default function PantallaLogin() {
     try {
       await abrirSesion(await iniciarSesionConGoogle(idToken));
     } catch (error) {
+      if (__DEV__) console.log('[google] la API rechazó el login con Google:', error);
       // Pendiente: CU02 A3 – en E2 (CUENTA_NO_ENCONTRADA), ofrecer registrarse con la misma cuenta de Google
       setMensajeError(mensajeDeErrorDeGoogle(error));
     } finally {

@@ -9,7 +9,15 @@ const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
  */
 export function googleDisponible(): boolean {
   const esExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-  return Boolean(GOOGLE_WEB_CLIENT_ID) && !esExpoGo;
+  const disponible = Boolean(GOOGLE_WEB_CLIENT_ID) && !esExpoGo;
+  if (__DEV__) {
+    // Diagnóstico temporal del botón de Google (quitar antes de commitear)
+    console.log('[google] entorno de ejecución:', Constants.executionEnvironment, esExpoGo ? '(Expo Go)' : '(development build)');
+    console.log('[google] EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:', GOOGLE_WEB_CLIENT_ID ? 'configurado' : 'VACÍO');
+    console.log('[google] EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:', GOOGLE_IOS_CLIENT_ID ? 'configurado' : 'vacío');
+    console.log('[google] se muestra el botón:', disponible);
+  }
+  return disponible;
 }
 
 let configurado = false;
@@ -28,8 +36,12 @@ export async function obtenerIdTokenDeGoogle(): Promise<string> {
     configurado = true;
   }
 
+  if (__DEV__) console.log('[google] verificando Google Play Services…');
   await GoogleSignin.hasPlayServices();
+  if (__DEV__) console.log('[google] abriendo el selector de cuentas…');
   const respuesta = await GoogleSignin.signIn();
+  if (__DEV__)
+    console.log('[google] respuesta de Google:', respuesta.type, respuesta.data?.idToken ? 'con idToken' : 'sin idToken');
   if (!isSuccessResponse(respuesta) || !respuesta.data.idToken) {
     throw new Error('El usuario canceló el inicio de sesión con Google o Google no devolvió el ID token');
   }
