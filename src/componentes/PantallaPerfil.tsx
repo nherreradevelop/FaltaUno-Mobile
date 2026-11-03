@@ -4,7 +4,12 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ActividadDelHistorial, Perfil } from '../api/tipos';
 import { obtenerMiHistorial, obtenerMiPerfil, obtenerPerfilDeUsuario } from '../api/usuarios';
-import { formatearCantidadActividades, formatearFecha, formatearValoracion } from '../comun/formato';
+import {
+  formatearCantidadActividades,
+  formatearCantidadValoraciones,
+  formatearFecha,
+  formatearValoracion,
+} from '../comun/formato';
 import {
   clasificarErrorDePerfil,
   ETIQUETA_ESTADO,
@@ -156,6 +161,10 @@ function DatosDelPerfil({ perfil }: { perfil: Perfil }) {
           {perfil.esPropio ? <Text style={estilos.textoSuave}>{perfil.email}</Text> : null}
           <Text>
             <Valoracion valoracionPromedio={perfil.valoracionPromedio} />
+            {/* CU04 FP: en el perfil propio se indica cuántas valoraciones recibió */}
+            {perfil.esPropio && perfil.cantidadValoraciones > 0 ? (
+              <Text style={estilos.textoSuave}> · {formatearCantidadValoraciones(perfil.cantidadValoraciones)}</Text>
+            ) : null}
             {/* CU04 A1: en el perfil de otro usuario se muestra cuántas actividades tiene, no cuáles */}
             {!perfil.esPropio ? (
               <Text style={estilos.textoSuave}> · {formatearCantidadActividades(perfil.cantidadActividades)}</Text>

@@ -30,9 +30,10 @@ export interface PerfilPublico {
   esPropio: false;
 }
 
-/** CU04 FP: el perfil propio agrega el correo; en lugar de la cantidad, muestra el historial. */
+/** CU04 FP: el perfil propio agrega el correo y la cantidad de valoraciones; en lugar de la cantidad de actividades, muestra el historial. */
 export interface PerfilPropio extends Omit<PerfilPublico, 'esPropio' | 'cantidadActividades'> {
   email: string;
+  cantidadValoraciones: number;
   esPropio: true;
 }
 

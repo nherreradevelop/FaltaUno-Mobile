@@ -10,6 +10,11 @@ export function formatearCantidadActividades(cantidad: number): string {
   return cantidad === 1 ? '1 actividad' : `${cantidad} actividades`;
 }
 
+/** CU04 FP: "1 valoración", "3 valoraciones". */
+export function formatearCantidadValoraciones(cantidad: number): string {
+  return cantidad === 1 ? '1 valoración' : `${cantidad} valoraciones`;
+}
+
 /** Fecha corta en español de Uruguay: "7 nov 2026". */
 export function formatearFecha(fechaIso: string): string {
   return new Date(fechaIso).toLocaleDateString('es-UY', { day: 'numeric', month: 'short', year: 'numeric' });
