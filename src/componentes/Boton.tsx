@@ -6,22 +6,25 @@ interface PropsBoton {
   alPresionar: () => void;
   cargando?: boolean;
   variante?: 'principal' | 'secundario';
+  /** Deshabilitado sin estar cargando (por ejemplo, una opción de un caso de uso pendiente). */
+  deshabilitado?: boolean;
 }
 
 /** Botón redondeado. Mientras carga queda deshabilitado para no enviar dos veces (RNF-10). */
-export function Boton({ texto, alPresionar, cargando = false, variante = 'principal' }: PropsBoton) {
+export function Boton({ texto, alPresionar, cargando = false, variante = 'principal', deshabilitado = false }: PropsBoton) {
   const esPrincipal = variante === 'principal';
+  const inactivo = cargando || deshabilitado;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: cargando, busy: cargando }}
-      disabled={cargando}
+      accessibilityState={{ disabled: inactivo, busy: cargando }}
+      disabled={inactivo}
       onPress={alPresionar}
       style={({ pressed }) => [
         estilos.base,
         esPrincipal ? estilos.principal : estilos.secundario,
         pressed && esPrincipal ? estilos.principalPresionado : null,
-        cargando ? estilos.deshabilitado : null,
+        inactivo ? estilos.deshabilitado : null,
       ]}
     >
       {cargando ? (
