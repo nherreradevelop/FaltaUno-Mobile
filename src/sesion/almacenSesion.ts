@@ -15,6 +15,8 @@ const CLAVE_ALMACENAMIENTO = 'faltauno.sesion';
  */
 class AlmacenSesion {
   private sesion: Sesion | null = null;
+  /** CU08 ER3 (y cualquier pantalla con sesión): la API rechazó el token, para avisar en el login que la sesión expiró. */
+  private vencida = false;
 
   readonly cambios = new Observable<Sesion | null>((error) => console.error('Falló un observador de la sesión', error));
 
@@ -38,6 +40,7 @@ class AlmacenSesion {
   }
 
   async abrir(sesion: Sesion): Promise<void> {
+    this.vencida = false;
     this.sesion = sesion;
     await SecureStore.setItemAsync(CLAVE_ALMACENAMIENTO, JSON.stringify(sesion));
     this.cambios.notificar(sesion);
@@ -50,6 +53,19 @@ class AlmacenSesion {
     this.sesion = null;
     await SecureStore.deleteItemAsync(CLAVE_ALMACENAMIENTO);
     this.cambios.notificar(null);
+  }
+
+  /** La API respondió 401 con un token guardado: la sesión venció o se cerró desde otro lado. */
+  async cerrarPorVencimiento(): Promise<void> {
+    if (this.sesion !== null) {
+      this.vencida = true;
+      await this.cerrar();
+    }
+  }
+
+  /** true si la última sesión se cerró porque venció (no porque el usuario salió). */
+  sesionVencio(): boolean {
+    return this.vencida;
   }
 }
 

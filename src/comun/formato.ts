@@ -40,3 +40,24 @@ export function urlDeFotoAlTamano(fotoUrl: string, tamanoEnPixeles: number): str
   const lado = tamanoEnPixeles * 2;
   return fotoUrl.replace(marcador, `${marcador}c_fill,g_face,w_${lado},h_${lado}/`);
 }
+
+// Las actividades se desarrollan en Uruguay: la fecha y la hora se muestran siempre en hora de Montevideo
+const ZONA_HORARIA = 'America/Montevideo';
+
+/** CU08: fecha y hora de inicio de una actividad: "mié 11 nov · 07:30". */
+export function formatearFechaHora(fechaIso: string): string {
+  const fecha = new Date(fechaIso);
+  const dia = fecha.toLocaleDateString('es-UY', { weekday: 'short', day: 'numeric', month: 'short', timeZone: ZONA_HORARIA });
+  const hora = fecha.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: ZONA_HORARIA });
+  return `${dia.replace(/\./g, '').replace(',', '')} · ${hora}`;
+}
+
+/** CU08: valoración del organizador en la tarjeta: "★ 4,33", o "Sin valoraciones" si todavía no tiene. */
+export function formatearValoracionDelOrganizador(valoracionPromedio: number | null): string {
+  return valoracionPromedio === null ? 'Sin valoraciones' : `★ ${formatearValoracion(valoracionPromedio)}`;
+}
+
+/** CU08: "1 lugar libre", "4 lugares libres". */
+export function formatearCuposLibres(cuposLibres: number): string {
+  return cuposLibres === 1 ? '1 lugar libre' : `${cuposLibres} lugares libres`;
+}
