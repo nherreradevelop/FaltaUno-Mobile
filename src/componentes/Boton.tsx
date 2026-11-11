@@ -5,7 +5,8 @@ interface PropsBoton {
   texto: string;
   alPresionar: () => void;
   cargando?: boolean;
-  variante?: 'principal' | 'secundario';
+  /** peligro: acción que saca al usuario de algo (por ejemplo, abandonar una actividad). */
+  variante?: 'principal' | 'secundario' | 'peligro';
   /** Deshabilitado sin estar cargando (por ejemplo, una opción de un caso de uso pendiente). */
   deshabilitado?: boolean;
 }
@@ -13,6 +14,7 @@ interface PropsBoton {
 /** Botón redondeado. Mientras carga queda deshabilitado para no enviar dos veces (RNF-10). */
 export function Boton({ texto, alPresionar, cargando = false, variante = 'principal', deshabilitado = false }: PropsBoton) {
   const esPrincipal = variante === 'principal';
+  const esPeligro = variante === 'peligro';
   const inactivo = cargando || deshabilitado;
   return (
     <Pressable
@@ -23,6 +25,7 @@ export function Boton({ texto, alPresionar, cargando = false, variante = 'princi
       style={({ pressed }) => [
         estilos.base,
         esPrincipal ? estilos.principal : estilos.secundario,
+        esPeligro ? estilos.peligro : null,
         pressed && esPrincipal ? estilos.principalPresionado : null,
         inactivo ? estilos.deshabilitado : null,
       ]}
@@ -30,7 +33,15 @@ export function Boton({ texto, alPresionar, cargando = false, variante = 'princi
       {cargando ? (
         <ActivityIndicator color={esPrincipal ? colores.blanco : colores.primario} />
       ) : (
-        <Text style={[estilos.texto, esPrincipal ? estilos.textoPrincipal : estilos.textoSecundario]}>{texto}</Text>
+        <Text
+          style={[
+            estilos.texto,
+            esPrincipal ? estilos.textoPrincipal : estilos.textoSecundario,
+            esPeligro ? estilos.textoPeligro : null,
+          ]}
+        >
+          {texto}
+        </Text>
       )}
     </Pressable>
   );
@@ -41,8 +52,10 @@ const estilos = StyleSheet.create({
   principal: { backgroundColor: colores.primario },
   principalPresionado: { backgroundColor: colores.primarioOscuro },
   secundario: { backgroundColor: colores.blanco, borderWidth: 1, borderColor: colores.borde },
+  peligro: { borderColor: colores.error },
   deshabilitado: { opacity: 0.6 },
   texto: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700' },
   textoPrincipal: { color: colores.blanco },
   textoSecundario: { color: colores.texto, fontWeight: '600', fontSize: 15 },
+  textoPeligro: { color: colores.error },
 });
