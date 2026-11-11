@@ -13,7 +13,28 @@ function esquemaUrlDeGoogleParaIos(clientIdIos: string): string {
   return `com.googleusercontent.apps.${prefijo}`;
 }
 
-const plugins: ExpoConfig['plugins'] = ['expo-router', 'expo-secure-store', 'expo-font'];
+const plugins: ExpoConfig['plugins'] = [
+  'expo-router',
+  'expo-secure-store',
+  'expo-font',
+  '@react-native-community/datetimepicker',
+  [
+    'react-native-maps',
+    {
+      androidGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY ?? '',
+      iosGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY ?? '',
+    },
+  ],
+  [
+    'expo-location',
+    {
+      locationWhenInUsePermission: 'FaltaUno usa tu ubicación para marcar tu punto de origen o destino cuando lo solicitás.',
+      isAndroidBackgroundLocationEnabled: false,
+      isAndroidForegroundServiceEnabled: false,
+      isIosBackgroundLocationEnabled: false,
+    },
+  ],
+];
 if (GOOGLE_IOS_CLIENT_ID) {
   plugins.push(['@react-native-google-signin/google-signin', { iosUrlScheme: esquemaUrlDeGoogleParaIos(GOOGLE_IOS_CLIENT_ID) }]);
 }

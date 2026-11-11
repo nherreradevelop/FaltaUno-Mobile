@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Boton } from '../../src/componentes/Boton';
 import { Avatar } from '../../src/componentes/Avatar';
 import { colores, fuentes } from '../../src/comun/tema';
 import { useSesion } from '../../src/sesion/SesionContexto';
@@ -26,6 +27,7 @@ export default function PantallaInicio() {
       <View style={estilos.contenido}>
         <Text style={estilos.titulo}>¡Hola, {sesion.usuario.nombre}!</Text>
         <Text style={estilos.texto}>Iniciaste sesión correctamente.</Text>
+        <Boton texto="Crear actividad" alPresionar={() => router.push('/actividades/crear')} />
       </View>
     </SafeAreaView>
   );
