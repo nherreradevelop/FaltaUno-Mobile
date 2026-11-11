@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { buscarActividades } from '../api/actividades';
-import type { ActividadEncontrada, FiltrosDeBusqueda, Ubicacion } from '../api/tipos';
+import type { ActividadEncontrada, FiltrosDeBusqueda, UbicacionDelUsuario } from '../api/tipos';
 import { MENSAJE_SIN_ACTIVIDADES, mensajeDeErrorDeBusqueda } from '../comun/mensajesExplorar';
 import { colores, fuentes } from '../comun/tema';
 import { Boton } from './Boton';
@@ -9,7 +9,7 @@ import { TarjetaActividad } from './TarjetaActividad';
 
 interface PropsResultados {
   filtros: FiltrosDeBusqueda;
-  ubicacion: Ubicacion | null;
+  ubicacion: UbicacionDelUsuario | null;
 }
 
 /**

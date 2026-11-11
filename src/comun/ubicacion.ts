@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import type { Ubicacion } from '../api/tipos';
+import type { UbicacionDelUsuario } from '../api/tipos';
 
 // Si el GPS tarda más que esto, se busca sin ubicación para no demorar la lista
 const TIEMPO_ESPERA_UBICACION_MS = 8_000;
@@ -15,7 +15,7 @@ function conTiempoLimite<T>(promesa: Promise<T>, milisegundos: number): Promise<
   });
 }
 
-async function leerPosicion(): Promise<Ubicacion | null> {
+async function leerPosicion(): Promise<UbicacionDelUsuario | null> {
   const permiso = await Location.requestForegroundPermissionsAsync();
   if (permiso.status !== Location.PermissionStatus.GRANTED) {
     return null;
@@ -30,6 +30,6 @@ async function leerPosicion(): Promise<Ubicacion | null> {
  * CU08 RN1: ubicación del GPS para ordenar por cercanía.
  * Devuelve null si el usuario no dio permiso o no se pudo obtener: en ese caso se ordena solo por fecha.
  */
-export function obtenerUbicacion(): Promise<Ubicacion | null> {
+export function obtenerUbicacion(): Promise<UbicacionDelUsuario | null> {
   return conTiempoLimite(leerPosicion(), TIEMPO_ESPERA_UBICACION_MS);
 }

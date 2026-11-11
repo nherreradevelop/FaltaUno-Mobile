@@ -220,7 +220,8 @@ function Valoracion({ valoracionPromedio }: { valoracionPromedio: number | null 
 function FilaDeActividad({ actividad }: { actividad: ActividadDelHistorial }) {
   const esCancelada = actividad.estado === 'cancelada';
   return (
-    <View style={estilos.fila}>
+    // CU09 trigger: el usuario selecciona una actividad desde sus actividades
+    <Pressable accessibilityRole="link" onPress={() => router.push(`/actividades/${actividad.id}`)} style={estilos.fila}>
       <View style={estilos.datosFila}>
         <Text style={estilos.nombreActividad}>{actividad.nombre}</Text>
         <Text style={estilos.textoSuave}>
@@ -230,7 +231,7 @@ function FilaDeActividad({ actividad }: { actividad: ActividadDelHistorial }) {
       <Text style={[estilos.etiqueta, esCancelada ? estilos.etiquetaCancelada : estilos.etiquetaArchivada]}>
         {ETIQUETA_ESTADO[actividad.estado]}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

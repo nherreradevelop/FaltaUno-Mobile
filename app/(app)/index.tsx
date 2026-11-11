@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { listarDepartamentos } from '../../src/api/actividades';
 import { listarDeportes } from '../../src/api/deportes';
-import type { Deporte, Ubicacion } from '../../src/api/tipos';
+import type { Deporte, UbicacionDelUsuario } from '../../src/api/tipos';
 import { Avatar } from '../../src/componentes/Avatar';
 import { Boton } from '../../src/componentes/Boton';
 import { PanelDeFiltros } from '../../src/componentes/PanelDeFiltros';
@@ -55,8 +55,8 @@ function useOpcionesDeFiltros(): OpcionesDeFiltros {
 }
 
 /** CU08 RN1: se pide la ubicación una sola vez al entrar. undefined mientras se pide; null sin permiso. */
-function useUbicacion(): Ubicacion | null | undefined {
-  const [ubicacion, setUbicacion] = useState<Ubicacion | null | undefined>(undefined);
+function useUbicacion(): UbicacionDelUsuario | null | undefined {
+  const [ubicacion, setUbicacion] = useState<UbicacionDelUsuario | null | undefined>(undefined);
   useEffect(() => {
     let vigente = true;
     obtenerUbicacion().then((ubicacionObtenida) => {
@@ -72,9 +72,11 @@ function useUbicacion(): Ubicacion | null | undefined {
 /**
  * M02 – CU08 Buscar actividades (Explorar). Es la pantalla principal con sesión; el avatar lleva a "Mi perfil" (CU04 FP paso 1).
  * Sin permiso de ubicación, se ordena solo por fecha (RN1).
+ * También muestra el aviso con el que vuelve otra pantalla (CU09 E2: la actividad no está disponible).
  */
 export default function PantallaExplorar() {
   const { sesion } = useSesion();
+  const { aviso } = useLocalSearchParams<{ aviso?: string }>();
   const opciones = useOpcionesDeFiltros();
   const ubicacion = useUbicacion();
   const [filtros, setFiltros] = useState<FiltrosEnEdicion>(FILTROS_VACIOS);
@@ -119,6 +121,12 @@ export default function PantallaExplorar() {
         </Pressable>
         {ubicacion !== undefined ? <Text style={estilos.orden}>{orden}</Text> : null}
       </View>
+
+      {aviso ? (
+        <Text style={estilos.avisoInfo} accessibilityRole="alert">
+          {aviso}
+        </Text>
+      ) : null}
 
       {/* ER2 */}
       {opciones.fallaron.length > 0 ? (
@@ -168,5 +176,16 @@ const estilos = StyleSheet.create({
   orden: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
   cargando: { marginVertical: 24 },
   aviso: { marginHorizontal: 20, marginBottom: 12, backgroundColor: colores.errorFondo, borderRadius: 14, padding: 14, gap: 12 },
+  avisoInfo: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: colores.primarioClaro,
+    color: colores.primarioOscuro,
+    fontFamily: fuentes.texto,
+    fontSize: 14,
+  },
   textoAviso: { fontFamily: fuentes.texto, fontSize: 14, lineHeight: 20, color: colores.error },
 });

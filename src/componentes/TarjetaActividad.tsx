@@ -1,7 +1,8 @@
+import { router } from 'expo-router';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ActividadEncontrada } from '../api/tipos';
-import { formatearCuposLibres, formatearFechaHora, formatearValoracionDelOrganizador } from '../comun/formato';
+import { formatearCuposLibres, formatearFechaHoraCorta, formatearValoracionDelOrganizador } from '../comun/formato';
 import { ETIQUETA_NIVEL } from '../comun/mensajesExplorar';
 import { colores, fuentes } from '../comun/tema';
 import { Boton } from './Boton';
@@ -21,7 +22,7 @@ export const TarjetaActividad = memo(function TarjetaActividad({ actividad }: { 
       </View>
       <Text style={estilos.nombre}>{actividad.nombre}</Text>
       <Text style={estilos.textoSuave}>
-        {formatearFechaHora(actividad.fechaHoraInicio)} · {actividad.departamento}
+        {formatearFechaHoraCorta(actividad.fechaHoraInicio)} · {actividad.departamento}
       </Text>
       {actividad.organizador ? (
         <Text style={estilos.lineaOrganizador}>
@@ -36,8 +37,8 @@ export const TarjetaActividad = memo(function TarjetaActividad({ actividad }: { 
         <Text style={estilos.dato}>{ETIQUETA_NIVEL[actividad.nivel]}</Text>
         <Text style={estilos.dato}>{formatearCuposLibres(actividad.cuposLibres)}</Text>
       </View>
-      {/* Pendiente: CU09 – Detalle de actividad */}
-      <Boton texto="Ver detalle" variante="secundario" alPresionar={() => undefined} deshabilitado />
+      {/* CU09 – Detalle de actividad */}
+      <Boton texto="Ver detalle" variante="secundario" alPresionar={() => router.push(`/actividades/${actividad.id}`)} />
     </View>
   );
 });
