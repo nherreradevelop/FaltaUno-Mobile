@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import fuenteBricolage from '../assets/fonts/BricolageGrotesque.ttf';
 import fuenteFigtree from '../assets/fonts/Figtree.ttf';
 import { ProveedorSesion, useSesion } from '../src/sesion/SesionContexto';
+import { useRetomarEnlaceTrasLogin } from '../src/sesion/enlacePendiente';
 
 /**
  * Elige el grupo de pantallas según haya sesión o no. Cuando la sesión cambia (login, 401),
@@ -11,6 +12,9 @@ import { ProveedorSesion, useSesion } from '../src/sesion/SesionContexto';
  */
 function PantallasSegunSesion() {
   const { sesion, cargando } = useSesion();
+  // CU09 A3: un enlace a una actividad abierto sin sesión se retoma después del login
+  useRetomarEnlaceTrasLogin(sesion !== null, cargando);
+
   if (cargando) {
     return null; // se sigue viendo la pantalla de carga nativa
   }
