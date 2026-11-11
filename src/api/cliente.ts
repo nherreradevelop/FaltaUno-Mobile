@@ -89,9 +89,9 @@ export async function pedir<T>(
   }
 
   if (!respuesta.ok) {
-    // La sesión venció o se cerró desde otro lado: se cierra la local y el router lleva al login
+    // La sesión venció o se cerró desde otro lado: se cierra la local, el layout lleva al login y ahí se avisa (CU08 ER3)
     if (respuesta.status === 401 && token) {
-      await almacenSesion.cerrar();
+      await almacenSesion.cerrarPorVencimiento();
     }
     throw await leerError(respuesta);
   }

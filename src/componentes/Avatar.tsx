@@ -1,5 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { iniciales, urlDeFotoAlTamano } from '../comun/formato';
+import { colorDeAvatar, iniciales, urlDeFotoAlTamano } from '../comun/formato';
 import { colores, fuentes } from '../comun/tema';
 
 interface PropsAvatar {
@@ -19,13 +19,17 @@ export function Avatar({ nombre, fotoUrl, tamano }: PropsAvatar) {
     );
   }
   return (
-    <View style={[estilos.iniciales, estiloTamano]} accessibilityLabel={nombre} accessibilityRole="image">
+    <View
+      style={[estilos.iniciales, estiloTamano, { backgroundColor: colorDeAvatar(nombre) }]}
+      accessibilityLabel={nombre}
+      accessibilityRole="image"
+    >
       <Text style={[estilos.texto, { fontSize: Math.round(tamano * 0.4) }]}>{iniciales(nombre)}</Text>
     </View>
   );
 }
 
 const estilos = StyleSheet.create({
-  iniciales: { backgroundColor: colores.acento, alignItems: 'center', justifyContent: 'center' },
+  iniciales: { alignItems: 'center', justifyContent: 'center' },
   texto: { color: colores.blanco, fontFamily: fuentes.texto, fontWeight: '700' },
 });

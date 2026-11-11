@@ -28,7 +28,9 @@ const plugins: ExpoConfig['plugins'] = [
   [
     'expo-location',
     {
-      locationWhenInUsePermission: 'FaltaUno usa tu ubicación para marcar tu punto de origen o destino cuando lo solicitás.',
+      // CU08 RN1 (ordenar por cercanía) y CU10 (marcar origen o destino)
+      locationWhenInUsePermission:
+        'FaltaUno usa tu ubicación para ordenar las actividades por cercanía y para marcar tu punto de origen o destino cuando lo solicitás.',
       isAndroidBackgroundLocationEnabled: false,
       isAndroidForegroundServiceEnabled: false,
       isIosBackgroundLocationEnabled: false,

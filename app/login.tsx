@@ -8,7 +8,13 @@ import { Boton } from '../src/componentes/Boton';
 import { Campo } from '../src/componentes/Campo';
 import { colores, fuentes } from '../src/comun/tema';
 import { googleDisponible, obtenerIdTokenDeGoogle } from '../src/sesion/google';
-import { MENSAJE_FALLA_GOOGLE, mensajeDeErrorDeGoogle, mensajeDeErrorDeLogin } from '../src/sesion/mensajesLogin';
+import { almacenSesion } from '../src/sesion/almacenSesion';
+import {
+  MENSAJE_FALLA_GOOGLE,
+  MENSAJE_SESION_VENCIDA,
+  mensajeDeErrorDeGoogle,
+  mensajeDeErrorDeLogin,
+} from '../src/sesion/mensajesLogin';
 import { useSesion } from '../src/sesion/SesionContexto';
 
 interface ErroresDeCampos {
@@ -35,7 +41,10 @@ export default function PantallaLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [erroresDeCampos, setErroresDeCampos] = useState<ErroresDeCampos>({});
-  const [mensajeError, setMensajeError] = useState<string | null>(null);
+  // CU08 ER3: si se llegó acá porque la sesión venció, se avisa
+  const [mensajeError, setMensajeError] = useState<string | null>(() =>
+    almacenSesion.sesionVencio() ? MENSAJE_SESION_VENCIDA : null,
+  );
   const [enviando, setEnviando] = useState(false);
 
   async function alIniciarSesion() {
