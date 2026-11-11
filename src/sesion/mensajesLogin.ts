@@ -21,3 +21,6 @@ export function mensajeDeErrorDeGoogle(error: unknown): string {
   }
   return MENSAJE_FALLA_GOOGLE;
 }
+
+/** CU08 ER3: la sesión venció mientras se usaba la app. */
+export const MENSAJE_SESION_VENCIDA = 'Tu sesión expiró. Volvé a iniciar sesión para continuar.';
