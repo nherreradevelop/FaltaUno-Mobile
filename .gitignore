@@ -38,3 +38,6 @@ web-build/
 *.pem
 .metro-health-check*
 *.tsbuildinfo
+
+# Archivos de Visual Studio (cachés, índices y estado de la ventana)
+.vs/

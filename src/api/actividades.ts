@@ -3,6 +3,8 @@ import type {
   ActividadEncontrada,
   DetalleActividad,
   FiltrosDeBusqueda,
+  GrupoDeActividades,
+  NivelActividad,
   OrganizadorEncontrado,
   PaginaDeParticipantes,
   ResultadoDeBusqueda,
@@ -59,6 +61,8 @@ function esActividadEncontrada(valor: unknown): valor is ActividadEncontrada {
     typeof actividad.departamento === 'string' &&
     typeof actividad.nivel === 'string' &&
     typeof actividad.cuposLibres === 'number' &&
+    typeof actividad.tieneVehiculo === 'boolean' &&
+    typeof actividad.requiereVehiculo === 'boolean' &&
     esOrganizadorValido(actividad.organizador) &&
     typeof actividad.esOrganizador === 'boolean'
   );
@@ -83,8 +87,10 @@ export async function buscarActividades(
   filtros: FiltrosDeBusqueda,
   pagina: number,
   ubicacion: UbicacionDelUsuario | null,
+  grupo?: GrupoDeActividades,
 ): Promise<ResultadoDeBusqueda> {
   const parametros = aParametrosDeBusqueda(filtros, pagina, ubicacion);
+  if (grupo) parametros.set('grupo', grupo);
   const respuesta = await pedir<unknown>(`/api/actividades?${parametros.toString()}`);
   return validarResultado(respuesta);
 }
@@ -102,4 +108,82 @@ export function obtenerDetalleDeActividad(actividadId: string): Promise<DetalleA
 /** CU09 A1: participantes de a 20. */
 export function obtenerParticipantes(actividadId: string, pagina: number): Promise<PaginaDeParticipantes> {
   return pedir<PaginaDeParticipantes>(`/api/actividades/${encodeURIComponent(actividadId)}/participantes?pagina=${pagina}`);
+}
+
+// --- CU10 – Crear actividad ---
+
+export interface Coordenadas {
+  lat: number;
+  lng: number;
+}
+export interface UbicacionResuelta extends Coordenadas {
+  direccion: string;
+  departamento: string;
+}
+
+// NivelActividad es el mismo tipo que usan la búsqueda (CU08) y el detalle (CU09)
+export type { NivelActividad };
+export interface LugarActividad {
+  placeId: string | null;
+  tipo?: 'pin';
+  descripcion: string;
+  lat?: number;
+  lng?: number;
+  provisional?: boolean;
+}
+export interface OpcionesActividad {
+  deportes: { id: number; nombre: string }[];
+  niveles: NivelActividad[];
+  maximoParticipantes: number;
+  mapasDisponibles: boolean;
+  destinoPorDefecto: LugarActividad & Coordenadas;
+  pronostico: { disponible: false; mensaje: string };
+}
+export interface DatosCrearActividad {
+  nombre: string;
+  descripcion: string;
+  deporteId: number;
+  fechaHoraInicio: string;
+  cupoMaximo: number;
+  nivel: NivelActividad;
+  origenPlaceId: string | null;
+  destinoPlaceId: string | null;
+  origenCoordenadas?: Coordenadas;
+  destinoCoordenadas?: Coordenadas;
+  tieneVehiculo: boolean;
+  lugaresVehiculo: number | null;
+  requiereVehiculo: boolean;
+  invitados: string[];
+  costoEstimadoCentavos: number | null;
+}
+export interface ActividadCreada {
+  id: string;
+  nombre: string;
+  estado: 'programada';
+  cantidadParticipantes: number;
+  cuposDisponibles: number;
+  costoEstimadoCentavos: number | null;
+  costoPorPersonaCentavos: number | null;
+  destinoProvisional: boolean;
+}
+
+/** CU10: catálogo y configuración del mismo servidor para web/mobile. */
+export function opcionesActividad(): Promise<OpcionesActividad> {
+  return pedir('/api/actividades/opciones');
+}
+/** El token de búsqueda agrupa las predicciones; nunca es una credencial de acceso. */
+export function buscarUbicaciones(texto: string, sesion: string): Promise<LugarActividad[]> {
+  return pedir(`/api/actividades/ubicaciones?${new URLSearchParams({ texto, sesion }).toString()}`);
+}
+/** Valida un pin por geocodificación inversa sin sustituir sus coordenadas. */
+export function resolverPunto(punto: Coordenadas): Promise<UbicacionResuelta> {
+  return pedir('/api/actividades/ubicaciones/punto?' + new URLSearchParams({ lat: String(punto.lat), lng: String(punto.lng) }));
+}
+/** Consulta solo al abrir el mapa sobre un lugar ya seleccionado. */
+export function detalleUbicacion(placeId: string): Promise<UbicacionResuelta> {
+  return pedir('/api/actividades/ubicaciones/detalle?' + new URLSearchParams({ placeId }));
+}
+/** Reusar la misma clave si se perdió la confirmación de este intento. */
+export function crearActividad(datos: DatosCrearActividad, clave: string): Promise<ActividadCreada> {
+  return pedir('/api/actividades', { metodo: 'POST', cuerpo: datos, claveIdempotencia: clave });
 }

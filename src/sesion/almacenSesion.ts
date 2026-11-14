@@ -1,10 +1,12 @@
 import * as SecureStore from 'expo-secure-store';
-import type { UsuarioSesion } from '../api/tipos';
+import { conservarFiltrosDeSesion, sonFiltrosValidos } from '../comun/filtrosDeSesion';
+import type { FiltrosDeBusqueda, UsuarioSesion } from '../api/tipos';
 import { Observable } from '../comun/observable';
 
 export interface Sesion {
   token: string;
   usuario: UsuarioSesion;
+  filtrosBusqueda?: FiltrosDeBusqueda;
 }
 
 const CLAVE_ALMACENAMIENTO = 'faltauno.sesion';
@@ -17,6 +19,7 @@ class AlmacenSesion {
   private sesion: Sesion | null = null;
   /** CU08 ER3 (y cualquier pantalla con sesión): la API rechazó el token, para avisar en el login que la sesión expiró. */
   private vencida = false;
+  private escrituraPendiente: Promise<void> = Promise.resolve();
 
   readonly cambios = new Observable<Sesion | null>((error) => console.error('Falló un observador de la sesión', error));
 
@@ -41,9 +44,35 @@ class AlmacenSesion {
 
   async abrir(sesion: Sesion): Promise<void> {
     this.vencida = false;
-    this.sesion = sesion;
-    await SecureStore.setItemAsync(CLAVE_ALMACENAMIENTO, JSON.stringify(sesion));
-    this.cambios.notificar(sesion);
+    const nueva = conservarFiltrosDeSesion(this.sesion, sesion);
+    this.sesion = nueva;
+    await this.persistir(nueva);
+    if (this.sesion?.token === nueva.token && this.sesion.usuario.id === nueva.usuario.id) {
+      this.cambios.notificar(this.sesion);
+    }
+  }
+
+  /** null significa que aún se deben inicializar los deportes del perfil. */
+  filtrosDeBusqueda(): FiltrosDeBusqueda | null {
+    const filtros = this.sesion?.filtrosBusqueda;
+    return sonFiltrosValidos(filtros) ? filtros : null;
+  }
+
+  /** Mantiene la selección en memoria y en el almacenamiento de la sesión. */
+  async guardarFiltrosDeBusqueda(token: string, filtros: FiltrosDeBusqueda): Promise<void> {
+    if (this.sesion?.token !== token || !sonFiltrosValidos(filtros)) return;
+    this.sesion = { ...this.sesion, filtrosBusqueda: filtros };
+    await this.persistir(this.sesion);
+  }
+
+  /** Serializa escrituras para que un guardado anterior no restaure filtros después del logout. */
+  private persistir(sesion: Sesion | null): Promise<void> {
+    const escribir = () =>
+      sesion
+        ? SecureStore.setItemAsync(CLAVE_ALMACENAMIENTO, JSON.stringify(sesion))
+        : SecureStore.deleteItemAsync(CLAVE_ALMACENAMIENTO);
+    this.escrituraPendiente = this.escrituraPendiente.catch(() => undefined).then(escribir);
+    return this.escrituraPendiente;
   }
 
   async cerrar(): Promise<void> {
@@ -51,8 +80,8 @@ class AlmacenSesion {
       return;
     }
     this.sesion = null;
-    await SecureStore.deleteItemAsync(CLAVE_ALMACENAMIENTO);
-    this.cambios.notificar(null);
+    await this.persistir(null);
+    if (this.sesion === null) this.cambios.notificar(null);
   }
 
   /** La API respondió 401 con un token guardado: la sesión venció o se cerró desde otro lado. */
