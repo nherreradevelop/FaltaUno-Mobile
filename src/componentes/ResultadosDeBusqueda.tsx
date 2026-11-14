@@ -25,17 +25,17 @@ export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
   const gestionando = useActividadesPorGrupo('gestionando', FILTROS_INICIALES, ubicacion, actualizacion);
   const unido = useActividadesPorGrupo('unido', FILTROS_INICIALES, ubicacion, actualizacion);
   const otras = useActividadesPorGrupo('otras', filtros, ubicacion, actualizacion);
-  const secciones = [
+  const todasLasSecciones = [
     {
       key: 'gestionando',
-      titulo: 'Actividades que estoy gestionando',
+      titulo: 'Actividades que estás organizando',
       vacio: 'Todavía no estás gestionando actividades.',
       data: gestionando.actividades,
       resultado: gestionando,
     },
     {
       key: 'unido',
-      titulo: 'Actividades a las que estoy unido',
+      titulo: 'Actividades a las que te uniste',
       vacio: 'Todavía no estás unido a actividades.',
       data: unido.actividades,
       resultado: unido,
@@ -48,6 +48,10 @@ export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
       resultado: otras,
     },
   ];
+  // Las secciones propias solo se muestran si tienen actividades (o un error para reintentar)
+  const secciones = todasLasSecciones.filter(
+    (seccion) => seccion.key === 'otras' || seccion.data.length > 0 || seccion.resultado.error !== null,
+  );
 
   return (
     <SectionList

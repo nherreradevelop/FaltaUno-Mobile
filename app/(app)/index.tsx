@@ -110,9 +110,6 @@ export default function PantallaExplorar() {
 
   const cantidadAplicados = cantidadDeFiltrosAplicados(filtros);
   const textoFiltros = cantidadAplicados > 0 ? `Filtros (${cantidadAplicados})` : 'Filtros';
-  const orden = ubicacion
-    ? 'Actividades por sección · ordenadas por fecha y cercanía'
-    : 'Actividades disponibles · ordenadas por fecha';
 
   return (
     <SafeAreaView style={estilos.pantalla} edges={['top', 'left', 'right']}>
@@ -138,7 +135,6 @@ export default function PantallaExplorar() {
             <Text style={estilos.textoBotonFiltros}>+ Crear actividad</Text>
           </Pressable>
         </View>
-        {ubicacion !== undefined ? <Text style={estilos.orden}>{orden}</Text> : null}
       </View>
 
       {aviso ? (
@@ -147,7 +143,6 @@ export default function PantallaExplorar() {
         </Text>
       ) : null}
 
-      <Text style={estilos.ordenDeFiltros}>Los filtros se aplican solo a las actividades que podrían interesarte.</Text>
       {filtrosSesion.error ? (
         <View style={estilos.aviso} accessibilityRole="alert">
           <Text style={estilos.textoAviso}>{filtrosSesion.error}</Text>
@@ -206,15 +201,7 @@ const estilos = StyleSheet.create({
   },
   botonFiltrosActivo: { backgroundColor: colores.primario },
   textoBotonFiltros: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700', color: colores.blanco },
-  orden: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
   cargando: { marginVertical: 24 },
-  ordenDeFiltros: {
-    fontFamily: fuentes.texto,
-    fontSize: 14,
-    color: colores.textoSuave,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
   aviso: { marginHorizontal: 20, marginBottom: 12, backgroundColor: colores.errorFondo, borderRadius: 14, padding: 14, gap: 12 },
   avisoInfo: {
     marginHorizontal: 20,
