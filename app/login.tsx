@@ -8,9 +8,11 @@ import { Boton } from '../src/componentes/Boton';
 import { Campo } from '../src/componentes/Campo';
 import { colores, fuentes } from '../src/comun/tema';
 import { googleDisponible, obtenerIdTokenDeGoogle } from '../src/sesion/google';
-import { almacenSesion } from '../src/sesion/almacenSesion';
+import { almacenSesion, type MotivoDeCierre } from '../src/sesion/almacenSesion';
 import {
+  MENSAJE_CIERRE_SIN_CONFIRMAR,
   MENSAJE_FALLA_GOOGLE,
+  MENSAJE_LIMPIEZA_INCOMPLETA,
   MENSAJE_SESION_VENCIDA,
   mensajeDeErrorDeGoogle,
   mensajeDeErrorDeLogin,
@@ -32,6 +34,13 @@ function validarCamposVacios(email: string, password: string): ErroresDeCampos {
 
 const MOSTRAR_GOOGLE = googleDisponible();
 
+/** Aviso a mostrar al llegar al login según cómo se cerró la sesión anterior (CU08 ER3, CU37 ER1). */
+function avisoDeCierre(motivo: MotivoDeCierre | null): string | null {
+  if (motivo === 'vencida') return MENSAJE_SESION_VENCIDA;
+  if (motivo === 'sinConfirmarEnServidor') return MENSAJE_CIERRE_SIN_CONFIRMAR;
+  return null;
+}
+
 /**
  * M01 – CU01 Inicio de sesión.
  * Al abrir la sesión no se navega a mano: el layout raíz detecta la sesión nueva y muestra la pantalla principal.
@@ -41,11 +50,23 @@ export default function PantallaLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [erroresDeCampos, setErroresDeCampos] = useState<ErroresDeCampos>({});
-  // CU08 ER3: si se llegó acá porque la sesión venció, se avisa
-  const [mensajeError, setMensajeError] = useState<string | null>(() =>
-    almacenSesion.sesionVencio() ? MENSAJE_SESION_VENCIDA : null,
-  );
+  // CU08 ER3 y CU37 ER1: si se llegó acá porque la sesión venció o no se pudo confirmar su cierre, se avisa
+  const [mensajeError, setMensajeError] = useState<string | null>(() => avisoDeCierre(almacenSesion.motivoDeCierre()));
+  // CU37 ER2: la sesión anterior no se pudo borrar del dispositivo
+  const [limpiezaIncompleta, setLimpiezaIncompleta] = useState(() => almacenSesion.motivoDeCierre() === 'limpiezaIncompleta');
+  const [reintentandoLimpieza, setReintentandoLimpieza] = useState(false);
   const [enviando, setEnviando] = useState(false);
+
+  /** CU37 ER2: reintento manual de la limpieza (RNF-10). */
+  async function reintentarLimpieza() {
+    setReintentandoLimpieza(true);
+    const seBorro = await almacenSesion.reintentarLimpieza();
+    setReintentandoLimpieza(false);
+    setLimpiezaIncompleta(!seBorro);
+    if (seBorro) {
+      setMensajeError(avisoDeCierre(almacenSesion.motivoDeCierre()));
+    }
+  }
 
   async function alIniciarSesion() {
     setMensajeError(null);
@@ -137,6 +158,13 @@ export default function PantallaLogin() {
               <Text style={estilos.enlacePendiente}>¿Olvidaste tu contraseña?</Text>
             </View>
 
+            {limpiezaIncompleta ? (
+              <View style={estilos.avisoConAccion} accessibilityRole="alert">
+                <Text style={estilos.avisoError}>{MENSAJE_LIMPIEZA_INCOMPLETA}</Text>
+                <Boton texto="Reintentar" variante="peligro" alPresionar={reintentarLimpieza} cargando={reintentandoLimpieza} />
+              </View>
+            ) : null}
+
             {mensajeError ? (
               <Text style={estilos.avisoError} accessibilityRole="alert">
                 {mensajeError}
@@ -201,6 +229,7 @@ const estilos = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  avisoConAccion: { gap: 10 },
   separador: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   linea: { flex: 1, height: 1, backgroundColor: colores.borde },
   textoSeparador: { fontFamily: fuentes.texto, fontSize: 13, color: colores.textoSuave },

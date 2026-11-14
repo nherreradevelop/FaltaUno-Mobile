@@ -56,7 +56,10 @@ async function leerError(respuesta: Response): Promise<ErrorApi> {
  * Única forma de llamar a la API desde la app: agrega el token, corta por tiempo de espera
  * y convierte cualquier error en ErrorApi.
  */
-export async function pedir<T>(ruta: string, opciones: { metodo?: string; cuerpo?: unknown } = {}): Promise<T> {
+export async function pedir<T>(
+  ruta: string,
+  opciones: { metodo?: string; cuerpo?: unknown; tiempoDeEsperaMs?: number } = {},
+): Promise<T> {
   const token = almacenSesion.token();
   const encabezados: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) {
@@ -65,7 +68,7 @@ export async function pedir<T>(ruta: string, opciones: { metodo?: string; cuerpo
 
   // AbortSignal.timeout no está disponible en todos los motores de React Native
   const controlador = new AbortController();
-  const temporizador = setTimeout(() => controlador.abort(), TIEMPO_ESPERA_MS);
+  const temporizador = setTimeout(() => controlador.abort(), opciones.tiempoDeEsperaMs ?? TIEMPO_ESPERA_MS);
 
   let respuesta: Response;
   try {
