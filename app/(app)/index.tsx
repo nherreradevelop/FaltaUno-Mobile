@@ -18,6 +18,7 @@ import {
 import { mensajeFallaDeFiltros } from '../../src/comun/mensajesExplorar';
 import { colores, fuentes } from '../../src/comun/tema';
 import { obtenerUbicacion } from '../../src/comun/ubicacion';
+import { useFiltrosDeSesion } from '../../src/sesion/useFiltrosDeSesion';
 import { useSesion } from '../../src/sesion/SesionContexto';
 
 interface OpcionesDeFiltros {
@@ -70,7 +71,8 @@ function useUbicacion(): UbicacionDelUsuario | null | undefined {
 }
 
 /**
- * M02 – CU08 Buscar actividades (Explorar). Es la pantalla principal con sesión; el avatar lleva a "Mi perfil" (CU04 FP paso 1).
+ * M02 – CU08 Buscar actividades (Explorar). Es la pantalla principal con sesión; el avatar lleva a "Mi perfil" (CU04 FP paso 1)
+ * y "+ Crear actividad" al alta (CU10).
  * Sin permiso de ubicación, se ordena solo por fecha (RN1).
  * También muestra el aviso con el que vuelve otra pantalla (CU09 E2: la actividad no está disponible).
  */
@@ -79,11 +81,21 @@ export default function PantallaExplorar() {
   const { aviso } = useLocalSearchParams<{ aviso?: string }>();
   const opciones = useOpcionesDeFiltros();
   const ubicacion = useUbicacion();
-  const [filtros, setFiltros] = useState<FiltrosEnEdicion>(FILTROS_VACIOS);
+  const filtrosSesion = useFiltrosDeSesion();
+  const filtros = useMemo<FiltrosEnEdicion>(
+    () =>
+      filtrosSesion.filtros
+        ? {
+            ...filtrosSesion.filtros,
+            cupoMaximo: filtrosSesion.filtros.cupoMaximo === null ? '' : String(filtrosSesion.filtros.cupoMaximo),
+          }
+        : FILTROS_VACIOS,
+    [filtrosSesion.filtros],
+  );
   const [panelVisible, setPanelVisible] = useState(false);
 
   // Mismo objeto mientras no cambien los filtros, para que la lista no vuelva a pedir lo mismo
-  const filtrosDeBusqueda = useMemo(() => aFiltrosDeBusqueda(filtros), [filtros]);
+  const filtrosDeBusqueda = filtrosSesion.filtros;
 
   if (!sesion) {
     return null;
@@ -92,14 +104,14 @@ export default function PantallaExplorar() {
   function aplicarFiltros(filtrosNuevos: FiltrosEnEdicion) {
     setPanelVisible(false);
     if (JSON.stringify(filtrosNuevos) !== JSON.stringify(filtros)) {
-      setFiltros(filtrosNuevos);
+      filtrosSesion.aplicar(aFiltrosDeBusqueda(filtrosNuevos));
     }
   }
 
   const cantidadAplicados = cantidadDeFiltrosAplicados(filtros);
   const textoFiltros = cantidadAplicados > 0 ? `Filtros (${cantidadAplicados})` : 'Filtros';
   const orden = ubicacion
-    ? 'Actividades disponibles · ordenadas por fecha y cercanía'
+    ? 'Actividades por sección · ordenadas por fecha y cercanía'
     : 'Actividades disponibles · ordenadas por fecha';
 
   return (
@@ -112,13 +124,20 @@ export default function PantallaExplorar() {
       </View>
 
       <View style={estilos.acciones}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setPanelVisible(true)}
-          style={[estilos.botonFiltros, cantidadAplicados > 0 ? estilos.botonFiltrosActivo : null]}
-        >
-          <Text style={estilos.textoBotonFiltros}>{textoFiltros}</Text>
-        </Pressable>
+        <View style={estilos.botones}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!filtrosSesion.filtros}
+            onPress={() => setPanelVisible(true)}
+            style={[estilos.botonFiltros, cantidadAplicados > 0 ? estilos.botonFiltrosActivo : null]}
+          >
+            <Text style={estilos.textoBotonFiltros}>{textoFiltros}</Text>
+          </Pressable>
+          {/* CU10 – Crear actividad */}
+          <Pressable accessibilityRole="button" onPress={() => router.push('/actividades/crear')} style={estilos.botonCrear}>
+            <Text style={estilos.textoBotonFiltros}>+ Crear actividad</Text>
+          </Pressable>
+        </View>
         {ubicacion !== undefined ? <Text style={estilos.orden}>{orden}</Text> : null}
       </View>
 
@@ -128,6 +147,13 @@ export default function PantallaExplorar() {
         </Text>
       ) : null}
 
+      <Text style={estilos.ordenDeFiltros}>Los filtros se aplican solo a las actividades que podrían interesarte.</Text>
+      {filtrosSesion.error ? (
+        <View style={estilos.aviso} accessibilityRole="alert">
+          <Text style={estilos.textoAviso}>{filtrosSesion.error}</Text>
+          <Boton texto="Reintentar" variante="secundario" alPresionar={filtrosSesion.reintentar} />
+        </View>
+      ) : null}
       {/* ER2 */}
       {opciones.fallaron.length > 0 ? (
         <View style={estilos.aviso} accessibilityRole="alert">
@@ -139,7 +165,7 @@ export default function PantallaExplorar() {
       {ubicacion === undefined ? (
         <ActivityIndicator color={colores.primario} style={estilos.cargando} />
       ) : (
-        <ResultadosDeBusqueda key={JSON.stringify(filtrosDeBusqueda)} filtros={filtrosDeBusqueda} ubicacion={ubicacion} />
+        <ResultadosDeBusqueda filtros={filtrosDeBusqueda} ubicacion={ubicacion} />
       )}
 
       <PanelDeFiltros
@@ -165,6 +191,13 @@ const estilos = StyleSheet.create({
   },
   titulo: { flex: 1, fontFamily: fuentes.titulos, fontWeight: '800', fontSize: 26, color: colores.texto },
   acciones: { paddingHorizontal: 20, paddingBottom: 12, gap: 10, alignItems: 'flex-start' },
+  botones: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  botonCrear: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 22,
+    backgroundColor: colores.acento,
+  },
   botonFiltros: {
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -175,6 +208,13 @@ const estilos = StyleSheet.create({
   textoBotonFiltros: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700', color: colores.blanco },
   orden: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
   cargando: { marginVertical: 24 },
+  ordenDeFiltros: {
+    fontFamily: fuentes.texto,
+    fontSize: 14,
+    color: colores.textoSuave,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
   aviso: { marginHorizontal: 20, marginBottom: 12, backgroundColor: colores.errorFondo, borderRadius: 14, padding: 14, gap: 12 },
   avisoInfo: {
     marginHorizontal: 20,

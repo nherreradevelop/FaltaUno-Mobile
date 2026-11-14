@@ -60,6 +60,8 @@ export type NivelActividad = 'principiante' | 'intermedio' | 'avanzado';
 /** CU08 A4: mañana 00:00–11:59, tarde 12:00–19:59, noche 20:00–23:59. */
 export type FranjaHoraria = 'manana' | 'tarde' | 'noche';
 
+export type GrupoDeActividades = 'gestionando' | 'unido' | 'otras';
+
 /** CU08: lo que se muestra de cada actividad en la búsqueda. */
 export interface ActividadEncontrada {
   id: string;
@@ -72,6 +74,10 @@ export interface ActividadEncontrada {
   /** null si el organizador cerró su cuenta. */
   organizador: OrganizadorEncontrado | null;
   esOrganizador: boolean;
+  /** El organizador declaró vehículo propio; no garantiza asientos disponibles. */
+  tieneVehiculo: boolean;
+  /** El organizador indicó que busca traslado. */
+  requiereVehiculo: boolean;
 }
 
 /** CU08: quién organiza la actividad y su valoración promedio como usuario (CU04 RN3). */
@@ -151,7 +157,8 @@ export interface DetalleActividad {
   fechaLimiteGastos: string | null;
   nivel: NivelActividad;
   descripcion: string | null;
-  origen: Ubicacion;
+  /** null si la actividad no tiene punto de partida (CU10: el origen es opcional). */
+  origen: Ubicacion | null;
   destino: Ubicacion;
   cupoMaximo: number;
   /** Participantes más invitados externos. */

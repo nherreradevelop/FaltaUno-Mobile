@@ -34,7 +34,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
         return;
       }
       const usuario = await obtenerUsuarioActual();
-      await almacenSesion.abrir({ token: sesionGuardada.token, usuario });
+      if (almacenSesion.token() === sesionGuardada.token) await almacenSesion.abrir({ token: sesionGuardada.token, usuario });
     }
     restaurarSesion().catch(() => setCargando(false));
   }, []);
