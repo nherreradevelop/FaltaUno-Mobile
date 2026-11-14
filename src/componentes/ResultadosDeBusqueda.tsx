@@ -5,8 +5,9 @@ import type { FiltrosDeBusqueda, UbicacionDelUsuario } from '../api/tipos';
 import { FILTROS_INICIALES } from '../comun/filtrosDeSesion';
 import { MENSAJE_SIN_ACTIVIDADES } from '../comun/mensajesExplorar';
 import { colores, fuentes } from '../comun/tema';
-import { useActividadesPorGrupo } from '../comun/useActividadesPorGrupo';
+import { terminoLaPrimeraCarga, useActividadesPorGrupo } from '../comun/useActividadesPorGrupo';
 import { Boton } from './Boton';
+import { EsqueletoDeActividades } from './EsqueletoDeActividades';
 import { TarjetaActividad } from './TarjetaActividad';
 
 interface PropsResultados {
@@ -14,7 +15,11 @@ interface PropsResultados {
   ubicacion: UbicacionDelUsuario | null;
 }
 
-/** Dashboard con paginación independiente por sección y una sola lista virtualizada. */
+/**
+ * Dashboard con paginación independiente por sección y una sola lista virtualizada.
+ * Hasta que respondan las dos secciones propias se muestra un esqueleto, así no aparecen después
+ * y empujan hacia abajo la lista que el usuario ya estaba mirando.
+ */
 export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
   const [actualizacion, setActualizacion] = useState(0);
   useFocusEffect(
@@ -25,25 +30,31 @@ export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
   const gestionando = useActividadesPorGrupo('gestionando', FILTROS_INICIALES, ubicacion, actualizacion);
   const unido = useActividadesPorGrupo('unido', FILTROS_INICIALES, ubicacion, actualizacion);
   const otras = useActividadesPorGrupo('otras', filtros, ubicacion, actualizacion);
+  const propiasListas = terminoLaPrimeraCarga(gestionando) && terminoLaPrimeraCarga(unido);
+  if (!propiasListas) {
+    return (
+      <View style={estilos.esqueleto}>
+        <EsqueletoDeActividades cantidad={3} />
+      </View>
+    );
+  }
+
   const todasLasSecciones = [
     {
       key: 'gestionando',
       titulo: 'Actividades que estás organizando',
-      vacio: 'Todavía no estás gestionando actividades.',
       data: gestionando.actividades,
       resultado: gestionando,
     },
     {
       key: 'unido',
       titulo: 'Actividades a las que te uniste',
-      vacio: 'Todavía no estás unido a actividades.',
       data: unido.actividades,
       resultado: unido,
     },
     {
       key: 'otras',
       titulo: 'Actividades que podrían interesarte',
-      vacio: MENSAJE_SIN_ACTIVIDADES,
       data: otras.actividades,
       resultado: otras,
     },
@@ -71,12 +82,15 @@ export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
       )}
       renderSectionFooter={({ section }) => (
         <View style={estilos.pie}>
-          {section.resultado.cargando ? <ActivityIndicator color={colores.primario} style={estilos.cargando} /> : null}
+          {section.resultado.cargando && section.data.length === 0 ? <EsqueletoDeActividades /> : null}
+          {section.resultado.cargando && section.data.length > 0 ? (
+            <ActivityIndicator color={colores.primario} style={estilos.cargando} />
+          ) : null}
           {!section.resultado.cargando && !section.resultado.error && section.data.length === 0 ? (
             <View style={estilos.vacio}>
-              <Text style={estilos.textoVacio}>{section.vacio}</Text>
+              <Text style={estilos.textoVacio}>{MENSAJE_SIN_ACTIVIDADES}</Text>
               {section.key === 'otras' ? (
-                <Boton texto="+ Crear actividad" alPresionar={() => router.push('/actividades/crear')} />
+                <Boton texto="+ Crear actividad" variante="secundario" alPresionar={() => router.push('/actividades/crear')} />
               ) : null}
             </View>
           ) : null}
@@ -97,6 +111,7 @@ export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
 
 const estilos = StyleSheet.create({
   contenido: { paddingHorizontal: 20, paddingBottom: 32 },
+  esqueleto: { paddingHorizontal: 20, paddingTop: 16 },
   titulo: {
     fontFamily: fuentes.titulos,
     fontWeight: '700',
@@ -108,7 +123,14 @@ const estilos = StyleSheet.create({
   item: { marginBottom: 12 },
   pie: { gap: 12, paddingBottom: 12 },
   cargando: { marginVertical: 24 },
-  vacio: { backgroundColor: colores.blanco, borderRadius: 20, borderWidth: 1, borderColor: colores.borde, padding: 18, gap: 14 },
+  vacio: {
+    backgroundColor: colores.superficie,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colores.borde,
+    padding: 18,
+    gap: 14,
+  },
   textoVacio: { fontFamily: fuentes.texto, fontSize: 15, lineHeight: 22, color: colores.texto },
   aviso: { backgroundColor: colores.errorFondo, borderRadius: 14, padding: 14, gap: 12 },
   textoAviso: { fontFamily: fuentes.texto, fontSize: 14, lineHeight: 20, color: colores.error },

@@ -89,7 +89,7 @@ const estilos = StyleSheet.create({
     borderColor: colores.borde,
     borderRadius: 14,
     paddingHorizontal: 14,
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
   },
   campoConError: { borderColor: colores.error },
   areaTocable: { flex: 1, height: '100%', justifyContent: 'center' },

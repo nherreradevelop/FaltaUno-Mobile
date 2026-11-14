@@ -146,8 +146,8 @@ export function SelectorUbicacion({
 }
 const estilos = StyleSheet.create({
   caja: { gap: 6 },
-  sugerencia: { padding: 14, borderWidth: 1, borderColor: colores.borde, borderRadius: 10, backgroundColor: colores.blanco },
+  sugerencia: { padding: 14, borderWidth: 1, borderColor: colores.borde, borderRadius: 10, backgroundColor: colores.superficie },
   texto: { fontFamily: fuentes.texto, color: colores.texto, fontSize: 15 },
-  atribucion: { fontFamily: fuentes.texto, color: '#5E5E5E', fontSize: 12, fontWeight: '400' },
+  atribucion: { fontFamily: fuentes.texto, color: colores.atribucionGoogle, fontSize: 12, fontWeight: '400' },
   enlace: { fontFamily: fuentes.texto, color: colores.primario, fontSize: 14 },
 });

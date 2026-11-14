@@ -270,7 +270,7 @@ const estilos = StyleSheet.create({
   contenido: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
   cargando: { marginVertical: 24 },
   tarjeta: {
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colores.borde,
@@ -294,7 +294,7 @@ const estilos = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  etiquetaArchivada: { backgroundColor: '#E3EFE3', color: '#2D5A2D' },
+  etiquetaArchivada: { backgroundColor: colores.exitoSuave, color: colores.exito },
   etiquetaCancelada: { backgroundColor: colores.errorFondo, color: colores.error },
   acciones: { flexDirection: 'row', gap: 10 },
   accion: { flex: 1 },

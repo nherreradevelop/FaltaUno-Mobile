@@ -2,7 +2,7 @@ import { useState } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Keyboard, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fechaHoraUruguay, valorDelSelector, ZONA_HORARIA_ACTIVIDAD } from '../comun/fechaHoraActividad';
-import { colores, fuentes } from '../comun/tema';
+import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
 
 type CampoFechaHora = 'fecha' | 'hora';
 interface Props {
@@ -134,16 +134,22 @@ const estilos = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colores.borde,
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
   },
   valor: { flexShrink: 1, fontFamily: fuentes.texto, fontSize: 16, color: colores.texto },
   placeholder: { color: colores.textoSuave },
   indicador: { color: colores.primario, fontSize: 18, fontWeight: '600' },
   conError: { borderColor: colores.error },
-  deshabilitado: { opacity: 0.5 },
+  deshabilitado: { opacity: OPACIDAD_DESHABILITADO },
   error: { fontFamily: fuentes.texto, fontSize: 13, color: colores.error },
-  fondoModal: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,37,55,0.4)' },
-  modal: { backgroundColor: colores.blanco, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
+  fondoModal: { flex: 1, justifyContent: 'flex-end', backgroundColor: colores.velo },
+  modal: {
+    backgroundColor: colores.superficie,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+  },
   titulo: { fontFamily: fuentes.titulos, fontSize: 20, color: colores.texto },
   acciones: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20 },
   accion: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 12 },

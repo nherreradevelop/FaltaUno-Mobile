@@ -27,7 +27,7 @@ export const TarjetaActividad = memo(function TarjetaActividad({ actividad }: { 
             Con locomoción
           </Text>
         ) : null}
-        {actividad.esOrganizador ? <Text style={[estilos.etiqueta, estilos.organizador]}>Organizada por ti</Text> : null}
+        {actividad.esOrganizador ? <Text style={[estilos.etiqueta, estilos.organizador]}>Organizada por vos</Text> : null}
       </View>
       <Text style={estilos.nombre}>{actividad.nombre}</Text>
       <Text style={estilos.textoSuave}>
@@ -54,7 +54,7 @@ export const TarjetaActividad = memo(function TarjetaActividad({ actividad }: { 
 
 const estilos = StyleSheet.create({
   tarjeta: {
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colores.borde,
@@ -73,7 +73,7 @@ const estilos = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  organizador: { backgroundColor: '#FDEBD9', color: '#8A4210' },
+  organizador: { backgroundColor: colores.acentoSuave, color: colores.acentoTexto },
   nombre: { fontFamily: fuentes.titulos, fontWeight: '800', fontSize: 22, color: colores.texto },
   textoSuave: { fontFamily: fuentes.texto, fontSize: 15, color: colores.textoSuave },
   lineaOrganizador: { fontFamily: fuentes.texto, fontSize: 15, color: colores.texto },

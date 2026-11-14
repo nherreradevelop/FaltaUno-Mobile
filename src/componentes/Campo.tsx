@@ -33,7 +33,7 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
     fontFamily: fuentes.texto,
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
     color: colores.texto,
   },
   inputConError: { borderColor: colores.error },

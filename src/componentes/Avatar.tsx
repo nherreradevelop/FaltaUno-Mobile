@@ -31,5 +31,5 @@ export function Avatar({ nombre, fotoUrl, tamano }: PropsAvatar) {
 
 const estilos = StyleSheet.create({
   iniciales: { alignItems: 'center', justifyContent: 'center' },
-  texto: { color: colores.blanco, fontFamily: fuentes.texto, fontWeight: '700' },
+  texto: { color: colores.sobrePrimario, fontFamily: fuentes.texto, fontWeight: '700' },
 });

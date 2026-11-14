@@ -22,6 +22,13 @@ const estadoInicial = (clave: string): EstadoResultados => ({
   error: null,
 });
 
+export type ResultadoDeGrupo = ReturnType<typeof useActividadesPorGrupo>;
+
+/** true cuando la primera página de la sección ya respondió (con actividades, vacía o con error). */
+export function terminoLaPrimeraCarga(resultado: ResultadoDeGrupo): boolean {
+  return resultado.paginaCargada > 0 || resultado.error !== null;
+}
+
 /** Una consulta paginada por sección; descarta respuestas de filtros anteriores y reinicia desde la página 1. */
 export function useActividadesPorGrupo(
   grupo: GrupoDeActividades,

@@ -429,11 +429,11 @@ const estilos = StyleSheet.create({
   seccion: { gap: 12 },
   descripcion: { height: 110, textAlignVertical: 'top', paddingTop: 12 },
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  opcion: { backgroundColor: colores.blanco, padding: 12, borderWidth: 1, borderColor: colores.borde, borderRadius: 14 },
+  opcion: { backgroundColor: colores.superficie, padding: 12, borderWidth: 1, borderColor: colores.borde, borderRadius: 14 },
   elegida: { backgroundColor: colores.primarioClaro, borderColor: colores.primario },
   interruptor: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   aviso: { backgroundColor: colores.errorFondo, padding: 14, borderRadius: 14, gap: 6 },
   error: { color: colores.error, fontFamily: fuentes.texto, fontSize: 15 },
   pronostico: { backgroundColor: colores.primarioClaro, padding: 16, borderRadius: 16, gap: 8 },
-  chip: { color: '#1E6042', fontFamily: fuentes.texto, fontWeight: '700' },
+  chip: { color: colores.exito, fontFamily: fuentes.texto, fontWeight: '700' },
 });
