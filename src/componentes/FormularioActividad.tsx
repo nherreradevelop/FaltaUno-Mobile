@@ -256,6 +256,54 @@ export function FormularioActividad() {
                 onChangeText={(v) => cambiar('descripcion', v)}
               />
               <View style={estilos.seccion}>
+                <Text style={estilos.subtitulo}>Traslado</Text>
+                <View style={estilos.interruptor}>
+                  <Text style={estilos.texto}>Tengo vehículo propio</Text>
+                  <Switch
+                    accessibilityLabel="Tengo vehículo propio"
+                    disabled={bloqueado}
+                    value={formulario.tieneVehiculo}
+                    onValueChange={(v) => cambiar('tieneVehiculo', v)}
+                  />
+                </View>
+                {formulario.tieneVehiculo && (
+                  <Campo
+                    etiqueta="Personas que puedo llevar al destino (incluyéndome a mí mismo)"
+                    keyboardType="number-pad"
+                    value={formulario.lugaresVehiculo}
+                    error={campos.lugaresVehiculo}
+                    editable={!bloqueado}
+                    onBlur={() => visitar('lugaresVehiculo')}
+                    onChangeText={(v) => cambiar('lugaresVehiculo', v)}
+                  />
+                )}
+                <View style={estilos.interruptor}>
+                  <Text style={estilos.texto}>Buscando traslado</Text>
+                  <Switch
+                    accessibilityLabel="Buscando traslado"
+                    disabled={bloqueado}
+                    value={formulario.requiereVehiculo}
+                    onValueChange={(v) => cambiar('requiereVehiculo', v)}
+                  />
+                </View>
+                <Campo
+                  etiqueta="Costo total estimado (opcional)"
+                  error={campos.costoEstimadoCentavos}
+                  keyboardType="decimal-pad"
+                  placeholder="0,00"
+                  value={formulario.costo}
+                  editable={!bloqueado}
+                  onBlur={() => visitar('costo')}
+                  onChangeText={(v) => cambiar('costo', v)}
+                />
+                {total !== null && (
+                  <Text style={estilos.nota}>
+                    Con {cantidad} participantes actuales: aproximadamente {mostrarImporte(Math.round(total / cantidad))} por
+                    persona. El total se divide entre los participantes y el importe cambia si se suman más.
+                  </Text>
+                )}
+              </View>
+              <View style={estilos.seccion}>
                 <Text style={estilos.subtitulo}>Recorrido</Text>
                 {!opciones.mapasDisponibles && (
                   <Text style={estilos.error}>
@@ -310,62 +358,14 @@ export function FormularioActividad() {
                 </View>
               </View>
               <View style={estilos.seccion}>
-                <Text style={estilos.subtitulo}>Traslado</Text>
-                <View style={estilos.interruptor}>
-                  <Text style={estilos.texto}>Tengo vehículo propio</Text>
-                  <Switch
-                    accessibilityLabel="Tengo vehículo propio"
-                    disabled={bloqueado}
-                    value={formulario.tieneVehiculo}
-                    onValueChange={(v) => cambiar('tieneVehiculo', v)}
-                  />
-                </View>
-                {formulario.tieneVehiculo && (
-                  <Campo
-                    etiqueta="Personas que puedo llevar al destino (incluyéndome a mí mismo)"
-                    keyboardType="number-pad"
-                    value={formulario.lugaresVehiculo}
-                    error={campos.lugaresVehiculo}
-                    editable={!bloqueado}
-                    onBlur={() => visitar('lugaresVehiculo')}
-                    onChangeText={(v) => cambiar('lugaresVehiculo', v)}
-                  />
-                )}
-                <View style={estilos.interruptor}>
-                  <Text style={estilos.texto}>Buscando traslado</Text>
-                  <Switch
-                    accessibilityLabel="Buscando traslado"
-                    disabled={bloqueado}
-                    value={formulario.requiereVehiculo}
-                    onValueChange={(v) => cambiar('requiereVehiculo', v)}
-                  />
-                </View>
-                <Campo
-                  etiqueta="Costo total estimado (opcional)"
-                  error={campos.costoEstimadoCentavos}
-                  keyboardType="decimal-pad"
-                  placeholder="0,00"
-                  value={formulario.costo}
-                  editable={!bloqueado}
-                  onBlur={() => visitar('costo')}
-                  onChangeText={(v) => cambiar('costo', v)}
-                />
-                {total !== null && (
-                  <Text style={estilos.nota}>
-                    Con {cantidad} participantes actuales: aproximadamente {mostrarImporte(Math.round(total / cantidad))} por
-                    persona. El total se divide entre los participantes y el importe cambia si se suman más.
-                  </Text>
-                )}
-              </View>
-              <View style={estilos.seccion}>
-                <Text style={estilos.subtitulo}>Invitados externos</Text>
+                <Text style={estilos.subtitulo}>Participantes externos</Text>
                 <Text style={estilos.texto}>
                   Vos también ocupás un lugar. Ocupados: {cantidad} de {formulario.cupoMaximo || '—'}.
                 </Text>
                 {formulario.invitados.map((nombre, indice) => (
                   <View key={indice} style={estilos.seccion}>
                     <Campo
-                      etiqueta={`Nombre del invitado ${indice + 1}`}
+                      etiqueta={`Nombre del participante externo ${indice + 1}`}
                       error={campos[`invitados.${indice}`]}
                       onBlur={() => visitar(`invitados.${indice}`)}
                       maxLength={100}
@@ -379,7 +379,7 @@ export function FormularioActividad() {
                       }
                     />
                     <Boton
-                      texto={`Quitar invitado ${indice + 1}`}
+                      texto={`Quitar participante externo ${indice + 1}`}
                       variante="secundario"
                       deshabilitado={bloqueado}
                       alPresionar={() =>
@@ -392,7 +392,7 @@ export function FormularioActividad() {
                   </View>
                 ))}
                 <Boton
-                  texto="Agregar invitado"
+                  texto="Agregar participante externo"
                   variante="secundario"
                   deshabilitado={bloqueado || cantidad >= Number(formulario.cupoMaximo)}
                   alPresionar={() => cambiar('invitados', [...formulario.invitados, ''])}

@@ -3,6 +3,7 @@ import type {
   ActividadEncontrada,
   DetalleActividad,
   FiltrosDeBusqueda,
+  GrupoDeActividades,
   NivelActividad,
   OrganizadorEncontrado,
   PaginaDeParticipantes,
@@ -60,6 +61,8 @@ function esActividadEncontrada(valor: unknown): valor is ActividadEncontrada {
     typeof actividad.departamento === 'string' &&
     typeof actividad.nivel === 'string' &&
     typeof actividad.cuposLibres === 'number' &&
+    typeof actividad.tieneVehiculo === 'boolean' &&
+    typeof actividad.requiereVehiculo === 'boolean' &&
     esOrganizadorValido(actividad.organizador) &&
     typeof actividad.esOrganizador === 'boolean'
   );
@@ -84,8 +87,10 @@ export async function buscarActividades(
   filtros: FiltrosDeBusqueda,
   pagina: number,
   ubicacion: UbicacionDelUsuario | null,
+  grupo?: GrupoDeActividades,
 ): Promise<ResultadoDeBusqueda> {
   const parametros = aParametrosDeBusqueda(filtros, pagina, ubicacion);
+  if (grupo) parametros.set('grupo', grupo);
   const respuesta = await pedir<unknown>(`/api/actividades?${parametros.toString()}`);
   return validarResultado(respuesta);
 }

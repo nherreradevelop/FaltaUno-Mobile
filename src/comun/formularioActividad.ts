@@ -138,11 +138,11 @@ export function datosDelFormulario(
     campos.lugaresVehiculo = 'Indicá una cantidad válida de personas que podés llevar.';
   }
   if (Number.isSafeInteger(cupo) && 1 + formulario.invitados.length > cupo)
-    campos.invitados = 'El organizador y sus invitados no pueden superar el cupo.';
+    campos.invitados = 'El organizador y los participantes externos no pueden superar el cupo.';
   formulario.invitados.forEach((invitado, indice) => {
-    if (!invitado.trim()) campos[`invitados.${indice}`] = `Ingresá el nombre del invitado ${indice + 1}.`;
+    if (!invitado.trim()) campos[`invitados.${indice}`] = `Ingresá el nombre del participante externo ${indice + 1}.`;
     else if (invitado.trim().length > 100)
-      campos[`invitados.${indice}`] = `El nombre del invitado ${indice + 1} admite hasta 100 caracteres.`;
+      campos[`invitados.${indice}`] = `El nombre del participante externo ${indice + 1} admite hasta 100 caracteres.`;
   });
   let costoEstimadoCentavos: number | null = null;
   try {

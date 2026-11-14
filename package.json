@@ -17,7 +17,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --experimental-strip-types --test test/formularioActividad.test.mjs"
+    "test": "node --experimental-transform-types --test test/formularioActividad.test.mjs test/filtrosDeSesion.test.mjs"
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "9.2.1",
