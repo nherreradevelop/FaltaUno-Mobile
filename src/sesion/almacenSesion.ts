@@ -10,13 +10,32 @@ export interface Sesion {
 const CLAVE_ALMACENAMIENTO = 'faltauno.sesion';
 
 /**
+ * Por qué se cerró la última sesión, para avisarlo en el login:
+ * - vencida: la API rechazó el token (CU08 ER3).
+ * - sinConfirmarEnServidor: el usuario cerró sesión pero la API no lo confirmó (CU37 ER1).
+ * - limpiezaIncompleta: no se pudo borrar la sesión guardada en el dispositivo (CU37 ER2).
+ */
+export type MotivoDeCierre = 'vencida' | 'sinConfirmarEnServidor' | 'limpiezaIncompleta';
+
+/** CU37 ER2: devuelve false si el dispositivo no permitió borrar la sesión guardada. */
+async function borrarSesionGuardada(): Promise<boolean> {
+  try {
+    await SecureStore.deleteItemAsync(CLAVE_ALMACENAMIENTO);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Única fuente de la sesión en la app. El token se guarda cifrado con expo-secure-store.
  * El cliente HTTP lee el token de acá y, ante un 401, la cierra. Quien necesite enterarse de los cambios se suscribe a `cambios`.
  */
 class AlmacenSesion {
   private sesion: Sesion | null = null;
-  /** CU08 ER3 (y cualquier pantalla con sesión): la API rechazó el token, para avisar en el login que la sesión expiró. */
-  private vencida = false;
+  private motivo: MotivoDeCierre | null = null;
+  /** CU37: se recuerda para el aviso que corresponde después de reintentar la limpieza (ER2 → ER1). */
+  private cierreConfirmadoEnServidor = true;
 
   readonly cambios = new Observable<Sesion | null>((error) => console.error('Falló un observador de la sesión', error));
 
@@ -40,7 +59,7 @@ class AlmacenSesion {
   }
 
   async abrir(sesion: Sesion): Promise<void> {
-    this.vencida = false;
+    this.motivo = null;
     this.sesion = sesion;
     await SecureStore.setItemAsync(CLAVE_ALMACENAMIENTO, JSON.stringify(sesion));
     this.cambios.notificar(sesion);
@@ -58,14 +77,43 @@ class AlmacenSesion {
   /** La API respondió 401 con un token guardado: la sesión venció o se cerró desde otro lado. */
   async cerrarPorVencimiento(): Promise<void> {
     if (this.sesion !== null) {
-      this.vencida = true;
+      this.motivo = 'vencida';
       await this.cerrar();
     }
   }
 
-  /** true si la última sesión se cerró porque venció (no porque el usuario salió). */
-  sesionVencio(): boolean {
-    return this.vencida;
+  /** Por qué se cerró la última sesión, o null si se cerró sin nada que avisar. */
+  motivoDeCierre(): MotivoDeCierre | null {
+    return this.motivo;
+  }
+
+  /**
+   * CU37 FP pasos 7 y 8: borra la sesión del dispositivo y avisa a los observadores; el layout pasa al login.
+   * Aunque no se pueda borrar de SecureStore, la sesión deja de usarse en la app (ER2: sin acceso a pantallas privadas).
+   */
+  async cerrarPorElUsuario(confirmadoEnServidor: boolean): Promise<void> {
+    this.cierreConfirmadoEnServidor = confirmadoEnServidor;
+    const seBorro = await borrarSesionGuardada();
+    this.motivo = this.motivoDespuesDeLimpiar(seBorro);
+    this.sesion = null;
+    this.cambios.notificar(null);
+  }
+
+  /** CU37 ER2: vuelve a intentar borrar la sesión guardada. Devuelve true si ahora se pudo. */
+  async reintentarLimpieza(): Promise<boolean> {
+    const seBorro = await borrarSesionGuardada();
+    this.motivo = this.motivoDespuesDeLimpiar(seBorro);
+    return seBorro;
+  }
+
+  private motivoDespuesDeLimpiar(seBorro: boolean): MotivoDeCierre | null {
+    if (!seBorro) {
+      return 'limpiezaIncompleta';
+    }
+    if (!this.cierreConfirmadoEnServidor) {
+      return 'sinConfirmarEnServidor';
+    }
+    return null;
   }
 }
 
