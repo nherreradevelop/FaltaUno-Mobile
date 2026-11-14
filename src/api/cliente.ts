@@ -58,7 +58,7 @@ async function leerError(respuesta: Response): Promise<ErrorApi> {
  */
 export async function pedir<T>(
   ruta: string,
-  opciones: { metodo?: string; cuerpo?: unknown; tiempoDeEsperaMs?: number } = {},
+  opciones: { metodo?: string; cuerpo?: unknown; claveIdempotencia?: string; tiempoDeEsperaMs?: number } = {},
 ): Promise<T> {
   const token = almacenSesion.token();
   const encabezados: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -69,6 +69,10 @@ export async function pedir<T>(
   // AbortSignal.timeout no está disponible en todos los motores de React Native
   const controlador = new AbortController();
   const temporizador = setTimeout(() => controlador.abort(), opciones.tiempoDeEsperaMs ?? TIEMPO_ESPERA_MS);
+
+  if (opciones.claveIdempotencia) {
+    encabezados['Idempotency-Key'] = opciones.claveIdempotencia;
+  }
 
   let respuesta: Response;
   try {

@@ -9,7 +9,7 @@ import { Boton } from './Boton';
 
 /**
  * CU08: una actividad de la búsqueda (mockup M02).
- * Muestra nombre, deporte, fecha y hora, departamento, organizador con su valoración, nivel y cupos libres;
+ * Muestra nombre, deporte, fecha y hora, departamento, organizador con su valoración, nivel, cupos libres y traslado declarado;
  * si el usuario la organiza, lo indica.
  * memo: la lista puede ser larga y al agregar una página no hace falta volver a dibujar las tarjetas que ya estaban.
  */
@@ -18,6 +18,15 @@ export const TarjetaActividad = memo(function TarjetaActividad({ actividad }: { 
     <View style={estilos.tarjeta}>
       <View style={estilos.etiquetas}>
         <Text style={estilos.etiqueta}>{actividad.deporte.nombre}</Text>
+        {actividad.requiereVehiculo ? <Text style={estilos.etiqueta}>Buscando traslado</Text> : null}
+        {actividad.tieneVehiculo ? (
+          <Text
+            style={estilos.etiqueta}
+            accessibilityLabel="Con locomoción. El organizador indicó que tiene vehículo; no garantiza asientos disponibles."
+          >
+            Con locomoción
+          </Text>
+        ) : null}
         {actividad.esOrganizador ? <Text style={[estilos.etiqueta, estilos.organizador]}>Organizada por ti</Text> : null}
       </View>
       <Text style={estilos.nombre}>{actividad.nombre}</Text>

@@ -7,7 +7,16 @@ import { colores, fuentes } from '../comun/tema';
 const ALTO_DEL_MAPA = 220;
 
 /** CU09 A2: "Cómo llegar": salida y destino juntos con el mismo mapa embebido de Google Maps que usa la web. */
-export function MapaDelRecorrido({ origen, destino }: { origen: Ubicacion; destino: Ubicacion }) {
+export function MapaDelRecorrido({
+  origen: origenIndicado,
+  destino,
+}: {
+  /** null si la actividad no tiene punto de partida (CU10: el origen es opcional). */
+  origen: Ubicacion | null;
+  destino: Ubicacion;
+}) {
+  // Sin punto de partida, el recorrido es un solo lugar: el destino
+  const origen = origenIndicado ?? destino;
   const urlDelRecorrido = urlDeRecorridoEnGoogleMaps(origen, destino);
   const unSoloLugar = esElMismoLugar(origen, destino);
 
