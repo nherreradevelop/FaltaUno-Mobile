@@ -17,7 +17,12 @@ export function formatearCantidadValoraciones(cantidad: number): string {
 
 /** Fecha corta en español de Uruguay: "7 nov 2026". */
 export function formatearFecha(fechaIso: string): string {
-  return new Date(fechaIso).toLocaleDateString('es-UY', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(fechaIso).toLocaleDateString('es-UY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: ZONA_HORARIA,
+  });
 }
 
 /** Iniciales para el avatar cuando el usuario no tiene foto: "Martina Rodríguez" → "MR". */
@@ -94,12 +99,19 @@ export function formatearMonto(centesimos: number): string {
 
 /** CU09: día de la actividad, sin abreviar (se lee más fácil que "sáb 14 nov."): "sábado 14 de noviembre". */
 export function formatearDia(fechaIso: string): string {
-  return new Date(fechaIso).toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
+  return new Date(fechaIso)
+    .toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long', timeZone: ZONA_HORARIA })
+    .replace(',', '');
 }
 
 /** CU09: hora de la actividad: "07:30". */
 export function formatearHora(fechaIso: string): string {
-  return new Date(fechaIso).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return new Date(fechaIso).toLocaleTimeString('es-UY', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: ZONA_HORARIA,
+  });
 }
 
 /** Si todavía queda algún lugar. Los invitados externos también ocupan lugar. */

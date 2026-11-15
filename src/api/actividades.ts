@@ -1,4 +1,5 @@
 import { ErrorApi, pedir } from './cliente';
+import { esDetalleDeActividad } from './validarDetalleActividad';
 import type {
   ActividadEncontrada,
   DetalleActividad,
@@ -101,8 +102,12 @@ export function listarDepartamentos(): Promise<string[]> {
 }
 
 /** CU09 FP. */
-export function obtenerDetalleDeActividad(actividadId: string): Promise<DetalleActividad> {
-  return pedir<DetalleActividad>(`/api/actividades/${encodeURIComponent(actividadId)}`);
+export async function obtenerDetalleDeActividad(actividadId: string): Promise<DetalleActividad> {
+  const respuesta = await pedir<unknown>(`/api/actividades/${encodeURIComponent(actividadId)}`);
+  if (!esDetalleDeActividad(respuesta)) {
+    throw new ErrorApi(0, 'RESPUESTA_INVALIDA', 'No fue posible cargar el detalle de la actividad. Probá de nuevo más tarde.');
+  }
+  return respuesta;
 }
 
 /** CU09 A1: participantes de a 20. */

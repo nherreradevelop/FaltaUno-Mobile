@@ -3,6 +3,7 @@ import { router, usePreventRemove } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,9 +11,10 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   crearActividad,
   opcionesActividad,
@@ -32,6 +34,7 @@ import { useFormularioActividad } from '../hooks/useFormularioActividad';
 
 /** CU10 mobile. Conserva el formulario y la intención de alta hasta conocer su resultado. */
 export function FormularioActividad() {
+  const margenesSeguros = useSafeAreaInsets();
   const { sesion } = useSesion();
   const [opciones, setOpciones] = useState<OpcionesActividad | null>(null);
   const [error, setError] = useState('');
@@ -118,6 +121,13 @@ export function FormularioActividad() {
   function cancelar() {
     if (!enviando && !pendiente) router.back();
   }
+  function mostrarCampoEnfocado() {
+    const campo = TextInput.State.currentlyFocusedInput();
+    if (campo && Keyboard.isVisible()) {
+      // H02: el cursor puede estar visible aunque la parte inferior de un campo multilínea quede tapada.
+      contenidoFormulario.current?.scrollResponderScrollNativeHandleToKeyboard(campo, margenesSeguros.top + 16, true);
+    }
+  }
   const bloqueado = enviando || pendiente;
   const cantidad = 1 + formulario.invitados.length;
   let total: number | null = null;
@@ -157,8 +167,13 @@ export function FormularioActividad() {
     );
   return (
     <SafeAreaView style={estilos.pantalla}>
-      <KeyboardAvoidingView style={estilos.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView ref={contenidoFormulario} contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView style={estilos.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          ref={contenidoFormulario}
+          contentContainerStyle={estilos.contenido}
+          keyboardShouldPersistTaps="handled"
+          onLayout={mostrarCampoEnfocado}
+        >
           <View style={estilos.encabezado}>
             <Pressable accessibilityRole="button" accessibilityLabel="Cancelar creación" disabled={bloqueado} onPress={cancelar}>
               <Text style={estilos.cerrar}>×</Text>
@@ -246,6 +261,7 @@ export function FormularioActividad() {
               </View>
               <Campo
                 etiqueta="Descripción"
+                onFocus={mostrarCampoEnfocado}
                 multiline
                 maxLength={1000}
                 style={estilos.descripcion}
