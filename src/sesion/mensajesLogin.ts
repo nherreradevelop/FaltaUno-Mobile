@@ -24,3 +24,10 @@ export function mensajeDeErrorDeGoogle(error: unknown): string {
 
 /** CU08 ER3: la sesión venció mientras se usaba la app. */
 export const MENSAJE_SESION_VENCIDA = 'Tu sesión expiró. Volvé a iniciar sesión para continuar.';
+
+/** CU37 ER1: se cerró en el dispositivo pero la API no lo confirmó. */
+export const MENSAJE_CIERRE_SIN_CONFIRMAR =
+  'Cerramos tu sesión en este dispositivo, pero no pudimos confirmarlo con el servidor. Si usás un dispositivo compartido, volvé a cerrar sesión cuando tengas conexión.';
+
+/** CU37 ER2: no se pudo borrar la sesión guardada en el dispositivo. */
+export const MENSAJE_LIMPIEZA_INCOMPLETA = 'No pudimos terminar de cerrar tu sesión en este dispositivo.';

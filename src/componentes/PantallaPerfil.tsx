@@ -19,6 +19,7 @@ import {
 import { colores, fuentes } from '../comun/tema';
 import { Avatar } from './Avatar';
 import { Boton } from './Boton';
+import { BotonCerrarSesion } from './BotonCerrarSesion';
 
 type EstadoPerfil = { tipo: 'cargando' } | { tipo: 'listo'; perfil: Perfil } | ResultadoDeError;
 
@@ -185,8 +186,10 @@ function DatosDelPerfil({ perfil }: { perfil: Perfil }) {
         </View>
       ) : null}
 
-      {/* CU04 RN2: "Editar perfil" solo en el perfil propio. Pendiente: CU05 – Editar perfil de usuario (A2) */}
+      {/* CU04 RN2: "Editar perfil" y "Cerrar sesión" solo en el perfil propio. Pendiente: CU05 – Editar perfil de usuario (A2) */}
       {perfil.esPropio ? <Boton texto="Editar perfil" variante="secundario" alPresionar={() => {}} deshabilitado /> : null}
+      {/* CU37 – Cierre de sesión */}
+      {perfil.esPropio ? <BotonCerrarSesion /> : null}
 
       {/* Opciones desde el perfil de otro usuario. Pendiente: CU06 – Gestionar lista de amigos y CU07 – Mensajería entre dos usuarios */}
       {!perfil.esPropio ? (
@@ -267,7 +270,7 @@ const estilos = StyleSheet.create({
   contenido: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
   cargando: { marginVertical: 24 },
   tarjeta: {
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colores.borde,
@@ -291,7 +294,7 @@ const estilos = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  etiquetaArchivada: { backgroundColor: '#E3EFE3', color: '#2D5A2D' },
+  etiquetaArchivada: { backgroundColor: colores.exitoSuave, color: colores.exito },
   etiquetaCancelada: { backgroundColor: colores.errorFondo, color: colores.error },
   acciones: { flexDirection: 'row', gap: 10 },
   accion: { flex: 1 },

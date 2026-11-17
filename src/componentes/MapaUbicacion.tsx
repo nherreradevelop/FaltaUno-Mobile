@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, View }
 import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { detalleUbicacion, resolverPunto, type Coordenadas, type LugarActividad } from '../api/actividades';
-import { colores, fuentes } from '../comun/tema';
+import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
 import { ubicarDispositivo } from '../infra/geolocalizacion';
 import { Boton } from './Boton';
 
@@ -248,13 +248,13 @@ const estilos = StyleSheet.create({
     right: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
     elevation: 3,
     borderWidth: 1,
     borderColor: colores.borde,
   },
   enlace: { fontFamily: fuentes.texto, fontSize: 14, color: colores.primario, fontWeight: '700' },
-  inactivo: { opacity: 0.6 },
+  inactivo: { opacity: OPACIDAD_DESHABILITADO },
   coordenadas: { fontFamily: fuentes.texto, fontSize: 13, color: colores.texto },
   error: { fontFamily: fuentes.texto, color: colores.error, fontSize: 14 },
   nota: { fontFamily: fuentes.texto, color: colores.textoSuave, fontSize: 12 },

@@ -72,6 +72,15 @@ describe('CU08 dashboard: filtros durante la sesión', () => {
     assert.equal(almacenSesion.actual(), null);
     assert.equal(datos.get('faltauno.sesion'), undefined);
   });
+  it('CU37: cerrar sesión por el usuario durante un guardado de filtros no deja la sesión guardada', async () => {
+    await almacenSesion.abrir(sesion);
+    const guardado = almacenSesion.guardarFiltrosDeBusqueda(sesion.token, filtros);
+    const cierre = almacenSesion.cerrarPorElUsuario(true);
+    await Promise.all([guardado, cierre]);
+    assert.equal(almacenSesion.actual(), null);
+    assert.equal(almacenSesion.motivoDeCierre(), null);
+    assert.equal(datos.get('faltauno.sesion'), undefined);
+  });
   it('actualizar el usuario durante un guardado conserva filtros y notifica el usuario vigente', async () => {
     await almacenSesion.abrir(sesion);
     let notificada;

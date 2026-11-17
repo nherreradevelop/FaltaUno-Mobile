@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import { colores, fuentes } from '../comun/tema';
+import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
 
 interface PropsBoton {
   texto: string;
@@ -9,6 +9,13 @@ interface PropsBoton {
   variante?: 'principal' | 'secundario' | 'peligro';
   /** Deshabilitado sin estar cargando (por ejemplo, una opción de un caso de uso pendiente). */
   deshabilitado?: boolean;
+}
+
+/** Mientras carga, el indicador va del color del texto de la variante. */
+function colorDelIndicador(variante: 'principal' | 'secundario' | 'peligro'): string {
+  if (variante === 'principal') return colores.sobrePrimario;
+  if (variante === 'peligro') return colores.error;
+  return colores.primario;
 }
 
 /** Botón redondeado. Mientras carga queda deshabilitado para no enviar dos veces (RNF-10). */
@@ -31,7 +38,7 @@ export function Boton({ texto, alPresionar, cargando = false, variante = 'princi
       ]}
     >
       {cargando ? (
-        <ActivityIndicator color={esPrincipal ? colores.blanco : colores.primario} />
+        <ActivityIndicator color={colorDelIndicador(variante)} />
       ) : (
         <Text
           style={[
@@ -51,11 +58,11 @@ const estilos = StyleSheet.create({
   base: { height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   principal: { backgroundColor: colores.primario },
   principalPresionado: { backgroundColor: colores.primarioOscuro },
-  secundario: { backgroundColor: colores.blanco, borderWidth: 1, borderColor: colores.borde },
+  secundario: { backgroundColor: colores.superficie, borderWidth: 1, borderColor: colores.primario },
   peligro: { borderColor: colores.error },
-  deshabilitado: { opacity: 0.6 },
+  deshabilitado: { opacity: OPACIDAD_DESHABILITADO },
   texto: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700' },
-  textoPrincipal: { color: colores.blanco },
-  textoSecundario: { color: colores.texto, fontWeight: '600', fontSize: 15 },
+  textoPrincipal: { color: colores.sobrePrimario },
+  textoSecundario: { color: colores.primario, fontWeight: '700', fontSize: 15 },
   textoPeligro: { color: colores.error },
 });

@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { listarDepartamentos } from '../../src/api/actividades';
 import { listarDeportes } from '../../src/api/deportes';
 import type { Deporte, UbicacionDelUsuario } from '../../src/api/tipos';
 import { Avatar } from '../../src/componentes/Avatar';
 import { Boton } from '../../src/componentes/Boton';
+import { EsqueletoDeActividades } from '../../src/componentes/EsqueletoDeActividades';
 import { PanelDeFiltros } from '../../src/componentes/PanelDeFiltros';
 import { ResultadosDeBusqueda } from '../../src/componentes/ResultadosDeBusqueda';
 import {
@@ -110,9 +111,6 @@ export default function PantallaExplorar() {
 
   const cantidadAplicados = cantidadDeFiltrosAplicados(filtros);
   const textoFiltros = cantidadAplicados > 0 ? `Filtros (${cantidadAplicados})` : 'Filtros';
-  const orden = ubicacion
-    ? 'Actividades por sección · ordenadas por fecha y cercanía'
-    : 'Actividades disponibles · ordenadas por fecha';
 
   return (
     <SafeAreaView style={estilos.pantalla} edges={['top', 'left', 'right']}>
@@ -125,20 +123,15 @@ export default function PantallaExplorar() {
 
       <View style={estilos.acciones}>
         <View style={estilos.botones}>
-          <Pressable
-            accessibilityRole="button"
-            disabled={!filtrosSesion.filtros}
-            onPress={() => setPanelVisible(true)}
-            style={[estilos.botonFiltros, cantidadAplicados > 0 ? estilos.botonFiltrosActivo : null]}
-          >
-            <Text style={estilos.textoBotonFiltros}>{textoFiltros}</Text>
-          </Pressable>
-          {/* CU10 – Crear actividad */}
-          <Pressable accessibilityRole="button" onPress={() => router.push('/actividades/crear')} style={estilos.botonCrear}>
-            <Text style={estilos.textoBotonFiltros}>+ Crear actividad</Text>
-          </Pressable>
+          <Boton
+            texto={textoFiltros}
+            variante="secundario"
+            deshabilitado={!filtrosSesion.filtros}
+            alPresionar={() => setPanelVisible(true)}
+          />
+          {/* CU10 – Crear actividad: la acción principal de la pantalla */}
+          <Boton texto="+ Crear actividad" alPresionar={() => router.push('/actividades/crear')} />
         </View>
-        {ubicacion !== undefined ? <Text style={estilos.orden}>{orden}</Text> : null}
       </View>
 
       {aviso ? (
@@ -147,7 +140,6 @@ export default function PantallaExplorar() {
         </Text>
       ) : null}
 
-      <Text style={estilos.ordenDeFiltros}>Los filtros se aplican solo a las actividades que podrían interesarte.</Text>
       {filtrosSesion.error ? (
         <View style={estilos.aviso} accessibilityRole="alert">
           <Text style={estilos.textoAviso}>{filtrosSesion.error}</Text>
@@ -163,7 +155,9 @@ export default function PantallaExplorar() {
       ) : null}
 
       {ubicacion === undefined ? (
-        <ActivityIndicator color={colores.primario} style={estilos.cargando} />
+        <View style={estilos.esqueleto}>
+          <EsqueletoDeActividades cantidad={3} />
+        </View>
       ) : (
         <ResultadosDeBusqueda filtros={filtrosDeBusqueda} ubicacion={ubicacion} />
       )}
@@ -192,29 +186,7 @@ const estilos = StyleSheet.create({
   titulo: { flex: 1, fontFamily: fuentes.titulos, fontWeight: '800', fontSize: 26, color: colores.texto },
   acciones: { paddingHorizontal: 20, paddingBottom: 12, gap: 10, alignItems: 'flex-start' },
   botones: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  botonCrear: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 22,
-    backgroundColor: colores.acento,
-  },
-  botonFiltros: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 22,
-    backgroundColor: colores.primarioOscuro,
-  },
-  botonFiltrosActivo: { backgroundColor: colores.primario },
-  textoBotonFiltros: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700', color: colores.blanco },
-  orden: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
-  cargando: { marginVertical: 24 },
-  ordenDeFiltros: {
-    fontFamily: fuentes.texto,
-    fontSize: 14,
-    color: colores.textoSuave,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
+  esqueleto: { paddingHorizontal: 20, paddingTop: 16 },
   aviso: { marginHorizontal: 20, marginBottom: 12, backgroundColor: colores.errorFondo, borderRadius: 14, padding: 14, gap: 12 },
   avisoInfo: {
     marginHorizontal: 20,

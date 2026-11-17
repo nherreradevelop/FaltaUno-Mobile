@@ -1,4 +1,9 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Boton } from '../../../../src/componentes/Boton';
+import { LimiteDeError } from '../../../../src/componentes/LimiteDeError';
+import { colores, fuentes } from '../../../../src/comun/tema';
 import { PantallaDetalleActividad } from '../../../../src/componentes/PantallaDetalleActividad';
 
 /**
@@ -8,5 +13,28 @@ import { PantallaDetalleActividad } from '../../../../src/componentes/PantallaDe
 export default function PantallaActividad() {
   const { id } = useLocalSearchParams<{ id: string }>();
   // key: al pasar de una actividad a otra, la pantalla arranca de cero
-  return <PantallaDetalleActividad key={id} actividadId={id} />;
+  return (
+    <LimiteDeError
+      key={id}
+      alternativa={(reintentar) => (
+        <SafeAreaView style={estilos.pantalla}>
+          <View style={estilos.contenido}>
+            <Text accessibilityRole="alert" style={estilos.mensaje}>
+              No fue posible cargar el detalle de la actividad. Probá de nuevo más tarde.
+            </Text>
+            <Boton texto="Reintentar" alPresionar={reintentar} />
+            <Boton texto="Volver al inicio" variante="secundario" alPresionar={() => router.replace('/')} />
+          </View>
+        </SafeAreaView>
+      )}
+    >
+      <PantallaDetalleActividad actividadId={id} />
+    </LimiteDeError>
+  );
 }
+
+const estilos = StyleSheet.create({
+  pantalla: { flex: 1, backgroundColor: colores.fondo },
+  contenido: { padding: 20, gap: 16 },
+  mensaje: { fontFamily: fuentes.texto, color: colores.texto, fontSize: 16 },
+});

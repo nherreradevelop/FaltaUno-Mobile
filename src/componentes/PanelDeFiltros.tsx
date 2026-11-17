@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Deporte, FranjaHoraria, NivelActividad } from '../api/tipos';
 import { alternar, FILTROS_VACIOS, hayErrores, validarFiltros, type FiltrosEnEdicion } from '../comun/filtrosDeBusqueda';
@@ -53,100 +53,102 @@ export function PanelDeFiltros({ visible, filtrosAplicados, deportes, departamen
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
       <SafeAreaView style={estilos.pantalla}>
-        <View style={estilos.barra}>
-          <Pressable accessibilityRole="button" onPress={alCerrar} hitSlop={12}>
-            <Text style={estilos.enlace}>Cerrar</Text>
-          </Pressable>
-          <Text style={estilos.titulo}>Filtros</Text>
-          <Pressable accessibilityRole="button" onPress={() => setFiltros(FILTROS_VACIOS)} hitSlop={12}>
-            <Text style={estilos.enlace}>Restablecer</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
-          {/* A1 */}
-          {deportes ? (
-            <Grupo titulo="Deporte">
-              {deportes.map((deporte) => (
-                <Chip
-                  key={deporte.id}
-                  texto={deporte.nombre}
-                  elegido={filtros.deportes.includes(deporte.id)}
-                  alPresionar={() => cambiar({ deportes: alternar(filtros.deportes, deporte.id) })}
-                />
-              ))}
-            </Grupo>
-          ) : null}
-
-          {/* A2 */}
-          <View style={estilos.fechas}>
-            <View style={estilos.fecha}>
-              <SelectorDeFecha etiqueta="Desde" valor={filtros.desde} alCambiar={(desde) => cambiar({ desde })} />
-            </View>
-            <View style={estilos.fecha}>
-              <SelectorDeFecha
-                etiqueta="Hasta"
-                valor={filtros.hasta}
-                minimo={filtros.desde || undefined}
-                alCambiar={(hasta) => cambiar({ hasta })}
-                error={mostrarErrores ? errores.hasta : undefined}
-              />
-            </View>
+        <KeyboardAvoidingView style={estilos.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={estilos.barra}>
+            <Pressable accessibilityRole="button" onPress={alCerrar} hitSlop={12}>
+              <Text style={estilos.enlace}>Cerrar</Text>
+            </Pressable>
+            <Text style={estilos.titulo}>Filtros</Text>
+            <Pressable accessibilityRole="button" onPress={() => setFiltros(FILTROS_VACIOS)} hitSlop={12}>
+              <Text style={estilos.enlace}>Restablecer</Text>
+            </Pressable>
           </View>
 
-          {/* A4 */}
-          <Grupo titulo="Franja horaria">
-            {FRANJAS.map((franja) => (
-              <Chip
-                key={franja}
-                texto={ETIQUETA_FRANJA[franja]}
-                elegido={filtros.franjas.includes(franja)}
-                alPresionar={() => cambiar({ franjas: alternar(filtros.franjas, franja) })}
-              />
-            ))}
-          </Grupo>
+          <ScrollView style={estilos.flex} contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
+            {/* A1 */}
+            {deportes ? (
+              <Grupo titulo="Deporte">
+                {deportes.map((deporte) => (
+                  <Chip
+                    key={deporte.id}
+                    texto={deporte.nombre}
+                    elegido={filtros.deportes.includes(deporte.id)}
+                    alPresionar={() => cambiar({ deportes: alternar(filtros.deportes, deporte.id) })}
+                  />
+                ))}
+              </Grupo>
+            ) : null}
 
-          {/* A5 */}
-          {departamentos ? (
-            <Grupo titulo="Departamento">
-              {departamentos.map((departamento) => (
+            {/* A2 */}
+            <View style={estilos.fechas}>
+              <View style={estilos.fecha}>
+                <SelectorDeFecha etiqueta="Desde" valor={filtros.desde} alCambiar={(desde) => cambiar({ desde })} />
+              </View>
+              <View style={estilos.fecha}>
+                <SelectorDeFecha
+                  etiqueta="Hasta"
+                  valor={filtros.hasta}
+                  minimo={filtros.desde || undefined}
+                  alCambiar={(hasta) => cambiar({ hasta })}
+                  error={mostrarErrores ? errores.hasta : undefined}
+                />
+              </View>
+            </View>
+
+            {/* A4 */}
+            <Grupo titulo="Franja horaria">
+              {FRANJAS.map((franja) => (
                 <Chip
-                  key={departamento}
-                  texto={departamento}
-                  elegido={filtros.departamentos.includes(departamento)}
-                  alPresionar={() => cambiar({ departamentos: alternar(filtros.departamentos, departamento) })}
+                  key={franja}
+                  texto={ETIQUETA_FRANJA[franja]}
+                  elegido={filtros.franjas.includes(franja)}
+                  alPresionar={() => cambiar({ franjas: alternar(filtros.franjas, franja) })}
                 />
               ))}
             </Grupo>
-          ) : null}
 
-          {/* A6 */}
-          <Grupo titulo="Nivel">
-            {NIVELES.map((nivel) => (
-              <Chip
-                key={nivel}
-                texto={ETIQUETA_NIVEL[nivel]}
-                elegido={filtros.niveles.includes(nivel)}
-                alPresionar={() => cambiar({ niveles: alternar(filtros.niveles, nivel) })}
-              />
-            ))}
-          </Grupo>
+            {/* A5 */}
+            {departamentos ? (
+              <Grupo titulo="Departamento">
+                {departamentos.map((departamento) => (
+                  <Chip
+                    key={departamento}
+                    texto={departamento}
+                    elegido={filtros.departamentos.includes(departamento)}
+                    alPresionar={() => cambiar({ departamentos: alternar(filtros.departamentos, departamento) })}
+                  />
+                ))}
+              </Grupo>
+            ) : null}
 
-          {/* A3 */}
-          <Campo
-            etiqueta="Máximo de personas"
-            placeholder="Sin límite"
-            keyboardType="number-pad"
-            maxLength={3}
-            value={filtros.cupoMaximo}
-            onChangeText={(cupoMaximo) => cambiar({ cupoMaximo })}
-            error={mostrarErrores ? errores.cupoMaximo : undefined}
-          />
-        </ScrollView>
+            {/* A6 */}
+            <Grupo titulo="Nivel">
+              {NIVELES.map((nivel) => (
+                <Chip
+                  key={nivel}
+                  texto={ETIQUETA_NIVEL[nivel]}
+                  elegido={filtros.niveles.includes(nivel)}
+                  alPresionar={() => cambiar({ niveles: alternar(filtros.niveles, nivel) })}
+                />
+              ))}
+            </Grupo>
 
-        <View style={estilos.pie}>
-          <Boton texto="Ver actividades" alPresionar={aplicar} />
-        </View>
+            {/* A3 */}
+            <Campo
+              etiqueta="Máximo de personas"
+              placeholder="Sin límite"
+              keyboardType="number-pad"
+              maxLength={3}
+              value={filtros.cupoMaximo}
+              onChangeText={(cupoMaximo) => cambiar({ cupoMaximo })}
+              error={mostrarErrores ? errores.cupoMaximo : undefined}
+            />
+          </ScrollView>
+
+          <View style={estilos.pie}>
+            <Boton texto="Ver actividades" alPresionar={aplicar} />
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -175,6 +177,7 @@ function Chip({ texto, elegido, alPresionar }: { texto: string; elegido: boolean
 }
 
 const estilos = StyleSheet.create({
+  flex: { flex: 1 },
   pantalla: { flex: 1, backgroundColor: colores.fondo },
   barra: {
     flexDirection: 'row',
@@ -184,7 +187,7 @@ const estilos = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colores.borde,
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
   },
   titulo: { fontFamily: fuentes.titulos, fontWeight: '800', fontSize: 20, color: colores.texto },
   enlace: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '600', color: colores.primario },
@@ -198,12 +201,12 @@ const estilos = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colores.borde,
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.superficie,
   },
   chipElegido: { borderColor: colores.primario, backgroundColor: colores.primarioClaro },
   textoChip: { fontFamily: fuentes.texto, fontSize: 15, color: colores.texto },
   textoChipElegido: { color: colores.primarioOscuro, fontWeight: '700' },
   fechas: { gap: 12 },
   fecha: { flex: 1 },
-  pie: { padding: 20, borderTopWidth: 1, borderTopColor: colores.borde, backgroundColor: colores.blanco },
+  pie: { padding: 20, borderTopWidth: 1, borderTopColor: colores.borde, backgroundColor: colores.superficie },
 });
