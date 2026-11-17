@@ -1,0 +1,49 @@
+# FaltaUno - Metro (servidor de desarrollo de Expo) en Docker.
+# Necesita la API levantada (repositorio FaltaUno-API) en el puerto 3000 de esta PC.
+#
+# 1. En un archivo .env de esta carpeta (además de las EXPO_PUBLIC_*), poner la IP de la PC en la red local:
+#      IP_DE_LA_PC=192.168.1.50        (en Windows: ipconfig → "Dirección IPv4" del Wi-Fi)
+#    El celular tiene que estar en la misma red Wi-Fi.
+# 2. docker compose up -d --build      y    docker compose watch   (recarga en caliente)
+# 3. Abrir el development build en el celular y elegir http://<IP_DE_LA_PC>:8081
+#    (o escanear el QR que aparece en: docker compose logs -f metro)
+#
+# El development build en sí se sigue compilando fuera de Docker con "npx expo run:android".
+name: faltauno-mobile
+
+services:
+  metro:
+    build:
+      context: .
+      target: desarrollo
+    image: faltauno-mobile:desarrollo
+    container_name: faltauno-metro
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Expo anuncia esta dirección al celular; sin ella anunciaría la IP interna del contenedor.
+      # La app arma la URL de la API con esta misma IP y el puerto 3000 (src/api/cliente.ts).
+      REACT_NATIVE_PACKAGER_HOSTNAME: ${IP_DE_LA_PC:?Falta IP_DE_LA_PC en .env (IP de la PC en la red local)}
+    ports:
+      - '8081:8081'
+    # Terminal interactiva: "docker attach faltauno-metro" permite usar las teclas de Expo (r = recargar)
+    stdin_open: true
+    tty: true
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app/app
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: sync
+          path: ./assets
+          target: /app/assets
+        - action: sync+restart
+          path: ./app.config.ts
+          target: /app/app.config.ts
+        - action: rebuild
+          path: ./package-lock.json

@@ -39,6 +39,28 @@ npm run typecheck         # verificar tipos
 Si `EXPO_PUBLIC_URL_API` queda vacía, en desarrollo la dirección de la API se arma con la IP de la computadora que da Expo (`Constants.expoConfig.hostUri`) y el puerto 3000.
 Las carpetas `android/` e `ios/` las genera `expo run` y no se suben al repositorio.
 
+## Ejecutar Metro con Docker
+
+Docker corre solo el servidor de Expo (Metro). El development build se sigue instalando en el celular o el emulador con `npx expo run:android`, fuera de Docker, y se vuelve a compilar solo cuando cambian dependencias nativas. La versión de producción de una app no es una imagen de Docker: se compila con EAS Build.
+
+1. Agregar al `.env` de esta carpeta la IP de la PC en la red local (en Windows: `ipconfig`, "Dirección IPv4" del Wi-Fi). El celular tiene que estar en la misma red.
+
+   ```
+   IP_DE_LA_PC=192.168.1.50
+   ```
+
+2. Con la API levantada en el puerto 3000 de esta PC:
+
+   ```bash
+   docker compose up -d --build
+   docker compose watch             # recarga en caliente: copia los cambios de app/ y src/ al contenedor
+   docker compose logs -f metro     # QR y logs de Expo
+   ```
+
+3. Abrir el development build y elegir `http://<IP_DE_LA_PC>:8081`. La app arma la URL de la API con esa misma IP y el puerto 3000.
+
+Para usar las teclas de Expo (por ejemplo `r` para recargar): `docker attach faltauno-metro` (salir sin cortarlo: `Ctrl+P` y después `Ctrl+Q`).
+
 ## Dashboard y filtros
 
 El dashboard muestra primero las actividades que gestionás, luego las que integrás y finalmente «Actividades que podrían interesarte». Cada sección tiene su propia paginación; las actividades propias siguen visibles aunque estén completas.
