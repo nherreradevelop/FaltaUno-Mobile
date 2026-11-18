@@ -11,7 +11,9 @@ import { PantallaDetalleActividad } from '../../../../src/componentes/PantallaDe
  * Pendiente: CU08 (búsqueda), CU14 (mis actividades) y CU18 (invitaciones) navegan acá con router.push(`/actividades/${id}`).
  */
 export default function PantallaActividad() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // creada/destinoProvisional: los agrega CU10 al terminar el alta para confirmar la creación
+  const { id, creada, destinoProvisional } = useLocalSearchParams<{ id: string; creada?: string; destinoProvisional?: string }>();
+  const actividadCreada = creada === 'si' ? { destinoProvisional: destinoProvisional === 'si' } : null;
   // key: al pasar de una actividad a otra, la pantalla arranca de cero
   return (
     <LimiteDeError
@@ -28,7 +30,7 @@ export default function PantallaActividad() {
         </SafeAreaView>
       )}
     >
-      <PantallaDetalleActividad actividadId={id} />
+      <PantallaDetalleActividad actividadId={id} actividadCreada={actividadCreada} />
     </LimiteDeError>
   );
 }
