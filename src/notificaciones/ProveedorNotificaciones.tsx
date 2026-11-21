@@ -13,8 +13,6 @@ interface ValorNotificaciones {
   actualizarNoLeidas: (cantidad: number) => void;
   /** Observer: avisa cada notificación nueva que llega en tiempo real (A3), por ejemplo a la pantalla abierta. */
   nuevas: Observable<Notificacion>;
-  /** Observer: avisa el id de cada notificación descartada en otro dispositivo (A5). */
-  descartadas: Observable<string>;
   /** Vuelve a pedir la cantidad sin leer (al abrir la pantalla). */
   refrescarNoLeidas: () => void;
 }
@@ -31,10 +29,6 @@ export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
   const [noLeidas, setNoLeidas] = useState(0);
   const nuevas = useMemo(
     () => new Observable<Notificacion>((error) => console.error('Falló un observador de notificaciones', error)),
-    [],
-  );
-  const descartadas = useMemo(
-    () => new Observable<string>((error) => console.error('Falló un observador de notificaciones descartadas', error)),
     [],
   );
   // Cambia con cada pedido para que refrescarNoLeidas() vuelva a disparar la consulta del efecto de abajo
@@ -60,7 +54,6 @@ export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
       nuevas.notificar(aviso.notificacion);
     });
     socket.on(EVENTOS_EN_VIVO.noLeidas, ({ cantidad }: { cantidad: number }) => setNoLeidas(cantidad));
-    socket.on(EVENTOS_EN_VIVO.descartada, ({ id }: { id: string }) => descartadas.notificar(id));
     // ER3: al recuperar la conexión se vuelve a consultar, por si llegaron notificaciones mientras estaba caída
     socket.io.on('reconnect', refrescarNoLeidas);
     // ER3: en segundo plano el sistema puede cortar la conexión; al volver a primer plano se consulta de nuevo
@@ -74,7 +67,7 @@ export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
       socket.io.off('reconnect', refrescarNoLeidas);
       socket.disconnect();
     };
-  }, [token, nuevas, descartadas]);
+  }, [token, nuevas]);
 
   // Pedido puntual del contador (al abrir la pantalla), sin reabrir la conexión en tiempo real
   useEffect(() => {
@@ -95,10 +88,9 @@ export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
       noLeidas,
       actualizarNoLeidas: setNoLeidas,
       nuevas,
-      descartadas,
       refrescarNoLeidas: () => setPedidoDeRefresco((anterior) => anterior + 1),
     }),
-    [noLeidas, nuevas, descartadas],
+    [noLeidas, nuevas],
   );
   return <NotificacionesContexto.Provider value={valor}>{children}</NotificacionesContexto.Provider>;
 }

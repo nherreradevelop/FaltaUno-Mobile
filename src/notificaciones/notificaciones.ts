@@ -5,7 +5,6 @@ import { formatearFecha } from '../comun/formato';
 export const EVENTOS_EN_VIVO = {
   nueva: 'notificaciones:nueva',
   noLeidas: 'notificaciones:no-leidas',
-  descartada: 'notificaciones:descartada',
 } as const;
 
 /** Lo que manda la API con cada notificación nueva (A3). */
@@ -36,9 +35,9 @@ export function rutaDeDestino(destino: DestinoNotificacion | null): string | nul
   return `/perfil/${destino.id}`;
 }
 
-/** A5: quita una notificación descartada de la lista. */
-export function quitarDeLaLista(lista: Notificacion[], id: string): Notificacion[] {
-  return lista.filter((notificacion) => notificacion.id !== id);
+/** FP paso 6 y A5: deja como leída una notificación de la lista, sin cambiar el orden ni las demás. */
+export function marcarLeidaEnLaLista(lista: Notificacion[], id: string): Notificacion[] {
+  return lista.map((notificacion) => (notificacion.id === id ? { ...notificacion, leida: true } : notificacion));
 }
 
 /** A3: agrega una notificación nueva al principio de la lista, sin duplicarla si ya estaba. */
@@ -66,5 +65,6 @@ export function haceCuanto(fechaIso: string, ahora: Date = new Date()): string {
 export const MENSAJES_NOTIFICACIONES = {
   vacio: 'No tenés notificaciones por ahora.', // E1
   errorAlCargar: 'No pudimos cargar las notificaciones.', // ER1
-  errorAlDescartar: 'No pudimos descartar la notificación.', // A5
+  errorAlMarcarUna: 'No pudimos marcar la notificación como leída.', // ER2 (A5)
+  errorAlMarcarTodas: 'No pudimos marcar las notificaciones como leídas.', // ER2 (A1)
 } as const;

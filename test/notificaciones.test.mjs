@@ -13,7 +13,7 @@ registerHooks({
     }
   },
 });
-const { agregarAlPrincipio, etiquetaDelIcono, haceCuanto, quitarDeLaLista, rutaDeDestino, textoDelIndicador } =
+const { agregarAlPrincipio, etiquetaDelIcono, haceCuanto, marcarLeidaEnLaLista, rutaDeDestino, textoDelIndicador } =
   await import('../src/notificaciones/notificaciones.ts');
 const { formatearFecha } = await import('../src/comun/formato.ts');
 
@@ -48,13 +48,19 @@ describe('CU40 – notificaciones en mobile', () => {
     assert.equal(agregarAlPrincipio(lista, notificacion('2')), lista);
   });
 
-  it('A5: una notificación descartada se quita de la lista y las demás quedan en su orden', () => {
+  it('A5: marcar una como leída sin abrirla cambia solo esa y conserva el orden', () => {
     const lista = [notificacion('3'), notificacion('2'), notificacion('1')];
+    const resultado = marcarLeidaEnLaLista(lista, '2');
     assert.deepEqual(
-      quitarDeLaLista(lista, '2').map((n) => n.id),
-      ['3', '1'],
+      resultado.map((n) => [n.id, n.leida]),
+      [
+        ['3', false],
+        ['2', true],
+        ['1', false],
+      ],
     );
-    assert.equal(quitarDeLaLista(lista, 'no-existe').length, 3);
+    assert.equal(lista[1].leida, false); // no modifica la lista original
+    assert.deepEqual(marcarLeidaEnLaLista(lista, 'no-existe'), lista);
   });
 
   it('FP paso 4: indica hace cuánto llegó cada notificación', () => {

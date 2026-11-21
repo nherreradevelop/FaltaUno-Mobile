@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  descartarNotificacion,
   listarNotificaciones,
   marcarNotificacionLeida,
   marcarTodasLasNotificacionesLeidas,
@@ -14,8 +13,8 @@ import { colores, fuentes } from '../../src/comun/tema';
 import {
   agregarAlPrincipio,
   haceCuanto,
+  marcarLeidaEnLaLista,
   MENSAJES_NOTIFICACIONES,
-  quitarDeLaLista,
   rutaDeDestino,
 } from '../../src/notificaciones/notificaciones';
 import { useNotificaciones } from '../../src/notificaciones/ProveedorNotificaciones';
@@ -27,14 +26,15 @@ type Carga = 'inicial' | 'mas' | null;
  * Ver la lista no marca nada como leído (RN5, A4); "Volver" regresa a la pantalla anterior.
  */
 export default function PantallaNotificaciones() {
-  const { noLeidas, actualizarNoLeidas, nuevas, descartadas, refrescarNoLeidas } = useNotificaciones();
+  const { noLeidas, actualizarNoLeidas, nuevas, refrescarNoLeidas } = useNotificaciones();
   const [lista, setLista] = useState<Notificacion[]>([]);
   const [hayMas, setHayMas] = useState(false);
   const [carga, setCarga] = useState<Carga>('inicial');
   const [error, setError] = useState<string | null>(null);
   const [marcandoTodas, setMarcandoTodas] = useState(false);
   const [intento, setIntento] = useState(0);
-  const [descartando, setDescartando] = useState<string | null>(null);
+  // A5: id de la notificación que se está marcando como leída sin abrirla
+  const [marcandoUna, setMarcandoUna] = useState<string | null>(null);
 
   // FP paso 3: primera página. "intento" la vuelve a pedir con "Reintentar" (ER1).
   useEffect(() => {
@@ -63,12 +63,6 @@ export default function PantallaNotificaciones() {
     // Solo al abrir: refrescarNoLeidas cambia en cada render del proveedor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // A5: si se descarta en otro dispositivo, también se quita de esta lista
-  useEffect(() => {
-    const desuscribir = descartadas.suscribir((id) => setLista((anterior) => quitarDeLaLista(anterior, id)));
-    return desuscribir;
-  }, [descartadas]);
 
   // A3: con la pantalla abierta, las nuevas se agregan arriba
   useEffect(() => {
@@ -103,7 +97,7 @@ export default function PantallaNotificaciones() {
     if (!notificacion.leida) {
       try {
         actualizarNoLeidas(await marcarNotificacionLeida(notificacion.id));
-        setLista((anterior) => anterior.map((n) => (n.id === notificacion.id ? { ...n, leida: true } : n)));
+        setLista((anterior) => marcarLeidaEnLaLista(anterior, notificacion.id));
       } catch {
         // ER2: igual se lleva al usuario a la pantalla; el indicador queda con lo que confirmó la API
       }
@@ -113,18 +107,18 @@ export default function PantallaNotificaciones() {
     if (ruta) router.push(ruta as Parameters<typeof router.push>[0]);
   }
 
-  /** A5: descarta una notificación; se quita de la lista cuando la API lo confirma. */
-  async function descartar(notificacion: Notificacion) {
-    if (descartando) return;
-    setDescartando(notificacion.id);
+  /** A5: marca una como leída sin abrirla; el usuario se queda en la pantalla. */
+  async function marcarComoLeida(notificacion: Notificacion) {
+    if (marcandoUna) return;
+    setMarcandoUna(notificacion.id);
     setError(null);
     try {
-      actualizarNoLeidas(await descartarNotificacion(notificacion.id));
-      setLista((anterior) => quitarDeLaLista(anterior, notificacion.id));
+      actualizarNoLeidas(await marcarNotificacionLeida(notificacion.id));
+      setLista((anterior) => marcarLeidaEnLaLista(anterior, notificacion.id));
     } catch {
-      setError(MENSAJES_NOTIFICACIONES.errorAlDescartar);
+      setError(MENSAJES_NOTIFICACIONES.errorAlMarcarUna); // ER2: queda sin leer
     } finally {
-      setDescartando(null);
+      setMarcandoUna(null);
     }
   }
 
@@ -136,7 +130,7 @@ export default function PantallaNotificaciones() {
       actualizarNoLeidas(await marcarTodasLasNotificacionesLeidas(hasta));
       setLista((anterior) => anterior.map((n) => (new Date(n.creadaEn) <= hasta ? { ...n, leida: true } : n)));
     } catch {
-      setError('No pudimos marcar las notificaciones como leídas.'); // ER2
+      setError(MENSAJES_NOTIFICACIONES.errorAlMarcarTodas); // ER2
     } finally {
       setMarcandoTodas(false);
     }
@@ -183,9 +177,9 @@ export default function PantallaNotificaciones() {
             <FilaNotificacion
               notificacion={item}
               alPresionar={() => void abrir(item)}
-              alDescartar={() => void descartar(item)}
-              descartando={descartando === item.id}
-              descarteBloqueado={descartando !== null}
+              alMarcarLeida={() => void marcarComoLeida(item)}
+              marcando={marcandoUna === item.id}
+              marcadoBloqueado={marcandoUna !== null}
             />
           )}
           ListEmptyComponent={sinNotificaciones ? <Text style={estilos.vacio}>{MENSAJES_NOTIFICACIONES.vacio}</Text> : undefined}
@@ -213,12 +207,12 @@ export default function PantallaNotificaciones() {
 interface PropsFila {
   notificacion: Notificacion;
   alPresionar: () => void;
-  alDescartar: () => void;
-  descartando: boolean;
-  descarteBloqueado: boolean;
+  alMarcarLeida: () => void;
+  marcando: boolean;
+  marcadoBloqueado: boolean;
 }
 
-function FilaNotificacion({ notificacion, alPresionar, alDescartar, descartando, descarteBloqueado }: PropsFila) {
+function FilaNotificacion({ notificacion, alPresionar, alMarcarLeida, marcando, marcadoBloqueado }: PropsFila) {
   const noLeida = !notificacion.leida;
   const cuando = haceCuanto(notificacion.creadaEn);
   return (
@@ -236,22 +230,26 @@ function FilaNotificacion({ notificacion, alPresionar, alDescartar, descartando,
           <Text style={estilos.cuando}>{cuando}</Text>
         </View>
       </Pressable>
-      {/* A5: descartar sin confirmación, a pedido del equipo */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Descartar notificación: ${notificacion.texto}`}
-        accessibilityState={{ disabled: descarteBloqueado, busy: descartando }}
-        disabled={descarteBloqueado}
-        onPress={alDescartar}
-        hitSlop={8}
-        style={({ pressed }) => [
-          estilos.descartar,
-          pressed ? estilos.filaPresionada : null,
-          descarteBloqueado ? estilos.descartarBloqueado : null,
-        ]}
-      >
-        <Text style={estilos.textoDescartar}>×</Text>
-      </Pressable>
+      {/* A5: solo en las que están sin leer; en las leídas el espacio queda vacío para que los textos se alineen */}
+      {noLeida ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Marcar como leída: ${notificacion.texto}`}
+          accessibilityState={{ disabled: marcadoBloqueado, busy: marcando }}
+          disabled={marcadoBloqueado}
+          onPress={alMarcarLeida}
+          hitSlop={8}
+          style={({ pressed }) => [
+            estilos.marcarLeida,
+            pressed ? estilos.filaPresionada : null,
+            marcadoBloqueado ? estilos.marcarLeidaBloqueado : null,
+          ]}
+        >
+          <Text style={estilos.textoMarcarLeida}>✓</Text>
+        </Pressable>
+      ) : (
+        <View style={estilos.marcarLeida} />
+      )}
     </View>
   );
 }
@@ -290,9 +288,9 @@ const estilos = StyleSheet.create({
   filaNoLeida: { backgroundColor: colores.primarioClaro, borderColor: colores.primarioClaro },
   filaPresionada: { opacity: 0.85 },
   contenidoFila: { flex: 1, flexDirection: 'row', gap: 12, padding: 10, paddingLeft: 14, minHeight: 44 },
-  descartar: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
-  descartarBloqueado: { opacity: 0.5 },
-  textoDescartar: { fontFamily: fuentes.texto, fontSize: 24, lineHeight: 28, color: colores.textoSuave },
+  marcarLeida: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  marcarLeidaBloqueado: { opacity: 0.5 },
+  textoMarcarLeida: { fontFamily: fuentes.texto, fontSize: 20, lineHeight: 24, fontWeight: '700', color: colores.primario },
   punto: { width: 10, height: 10, marginTop: 6, borderRadius: 5 },
   puntoNoLeida: { backgroundColor: colores.primario },
   textos: { flex: 1, gap: 4 },

@@ -34,17 +34,11 @@ export async function contarNotificacionesNoLeidas(): Promise<number> {
   return cantidad;
 }
 
-/** CU40 FP paso 6: devuelve la cantidad sin leer confirmada por la API. */
+/** CU40 FP paso 6 y A5: devuelve la cantidad sin leer confirmada por la API. */
 export async function marcarNotificacionLeida(id: string): Promise<number> {
   const { cantidad } = await pedir<CantidadNoLeidas>(`/api/notificaciones/${encodeURIComponent(id)}/leida`, {
     metodo: 'PATCH',
   });
-  return cantidad;
-}
-
-/** CU40 A5: descarta (elimina) una notificación; devuelve la cantidad sin leer que queda. */
-export async function descartarNotificacion(id: string): Promise<number> {
-  const { cantidad } = await pedir<CantidadNoLeidas>(`/api/notificaciones/${encodeURIComponent(id)}`, { metodo: 'DELETE' });
   return cantidad;
 }
 
