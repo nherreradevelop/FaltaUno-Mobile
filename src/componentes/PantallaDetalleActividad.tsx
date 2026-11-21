@@ -185,12 +185,13 @@ function BarraDeAccionPrincipal({ actividad }: { actividad: DetalleActividad }) 
     return null;
   }
   return (
-    <SafeAreaView edges={['bottom']} style={estilos.barraInferior}>
+    // Sin margen seguro inferior: queda arriba de la barra de navegación, que ya lo tiene (CU39)
+    <View style={estilos.barraInferior}>
       {/* Pendiente: CU11 – Unirse a una actividad */}
       <Boton texto={principal.etiqueta} alPresionar={() => {}} deshabilitado />
       {/* Que un botón apagado no parezca roto: se avisa a la vista */}
       <Text style={estilos.proximamente}>Disponible próximamente</Text>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -734,7 +735,7 @@ const estilos = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colores.borde,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingVertical: 12,
   },
   fondoMenu: { flex: 1, backgroundColor: colores.velo, alignItems: 'flex-end', paddingTop: 110, paddingRight: 16 },
   menu: { width: 250, backgroundColor: colores.superficie, borderRadius: 16, padding: 8 },

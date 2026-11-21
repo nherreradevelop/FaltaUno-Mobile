@@ -7,17 +7,17 @@ import {
   marcarNotificacionLeida,
   marcarTodasLasNotificacionesLeidas,
   type Notificacion,
-} from '../../src/api/notificaciones';
-import { Boton } from '../../src/componentes/Boton';
-import { colores, fuentes } from '../../src/comun/tema';
+} from '../../../../src/api/notificaciones';
+import { Boton } from '../../../../src/componentes/Boton';
+import { colores, fuentes } from '../../../../src/comun/tema';
 import {
   agregarAlPrincipio,
   haceCuanto,
   marcarLeidaEnLaLista,
   MENSAJES_NOTIFICACIONES,
   rutaDeDestino,
-} from '../../src/notificaciones/notificaciones';
-import { useNotificaciones } from '../../src/notificaciones/ProveedorNotificaciones';
+} from '../../../../src/notificaciones/notificaciones';
+import { useNotificaciones } from '../../../../src/notificaciones/ProveedorNotificaciones';
 
 type Carga = 'inicial' | 'mas' | null;
 
