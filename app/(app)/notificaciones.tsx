@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  descartarNotificacion,
   listarNotificaciones,
   marcarNotificacionLeida,
   marcarTodasLasNotificacionesLeidas,
@@ -10,7 +11,13 @@ import {
 } from '../../src/api/notificaciones';
 import { Boton } from '../../src/componentes/Boton';
 import { colores, fuentes } from '../../src/comun/tema';
-import { agregarAlPrincipio, haceCuanto, MENSAJES_NOTIFICACIONES, rutaDeDestino } from '../../src/notificaciones/notificaciones';
+import {
+  agregarAlPrincipio,
+  haceCuanto,
+  MENSAJES_NOTIFICACIONES,
+  quitarDeLaLista,
+  rutaDeDestino,
+} from '../../src/notificaciones/notificaciones';
 import { useNotificaciones } from '../../src/notificaciones/ProveedorNotificaciones';
 
 type Carga = 'inicial' | 'mas' | null;
@@ -20,13 +27,14 @@ type Carga = 'inicial' | 'mas' | null;
  * Ver la lista no marca nada como leído (RN5, A4); "Volver" regresa a la pantalla anterior.
  */
 export default function PantallaNotificaciones() {
-  const { noLeidas, actualizarNoLeidas, nuevas } = useNotificaciones();
+  const { noLeidas, actualizarNoLeidas, nuevas, descartadas, refrescarNoLeidas } = useNotificaciones();
   const [lista, setLista] = useState<Notificacion[]>([]);
   const [hayMas, setHayMas] = useState(false);
   const [carga, setCarga] = useState<Carga>('inicial');
   const [error, setError] = useState<string | null>(null);
   const [marcandoTodas, setMarcandoTodas] = useState(false);
   const [intento, setIntento] = useState(0);
+  const [descartando, setDescartando] = useState<string | null>(null);
 
   // FP paso 3: primera página. "intento" la vuelve a pedir con "Reintentar" (ER1).
   useEffect(() => {
@@ -48,6 +56,19 @@ export default function PantallaNotificaciones() {
       vigente = false;
     };
   }, [intento]);
+
+  // Al abrir la pantalla se confirma el indicador con la API, por si cambió sin aviso en vivo
+  useEffect(() => {
+    refrescarNoLeidas();
+    // Solo al abrir: refrescarNoLeidas cambia en cada render del proveedor
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // A5: si se descarta en otro dispositivo, también se quita de esta lista
+  useEffect(() => {
+    const desuscribir = descartadas.suscribir((id) => setLista((anterior) => quitarDeLaLista(anterior, id)));
+    return desuscribir;
+  }, [descartadas]);
 
   // A3: con la pantalla abierta, las nuevas se agregan arriba
   useEffect(() => {
@@ -90,6 +111,21 @@ export default function PantallaNotificaciones() {
     const ruta = rutaDeDestino(notificacion.destino);
     // E2: la pantalla de destino muestra el estado actual (por ejemplo, actividad cancelada)
     if (ruta) router.push(ruta as Parameters<typeof router.push>[0]);
+  }
+
+  /** A5: descarta una notificación; se quita de la lista cuando la API lo confirma. */
+  async function descartar(notificacion: Notificacion) {
+    if (descartando) return;
+    setDescartando(notificacion.id);
+    setError(null);
+    try {
+      actualizarNoLeidas(await descartarNotificacion(notificacion.id));
+      setLista((anterior) => quitarDeLaLista(anterior, notificacion.id));
+    } catch {
+      setError(MENSAJES_NOTIFICACIONES.errorAlDescartar);
+    } finally {
+      setDescartando(null);
+    }
   }
 
   /** A1: marca las recibidas hasta este momento. */
@@ -143,7 +179,15 @@ export default function PantallaNotificaciones() {
           contentContainerStyle={estilos.contenido}
           onEndReached={() => void verMas()}
           onEndReachedThreshold={0.3}
-          renderItem={({ item }) => <FilaNotificacion notificacion={item} alPresionar={() => void abrir(item)} />}
+          renderItem={({ item }) => (
+            <FilaNotificacion
+              notificacion={item}
+              alPresionar={() => void abrir(item)}
+              alDescartar={() => void descartar(item)}
+              descartando={descartando === item.id}
+              descarteBloqueado={descartando !== null}
+            />
+          )}
           ListEmptyComponent={sinNotificaciones ? <Text style={estilos.vacio}>{MENSAJES_NOTIFICACIONES.vacio}</Text> : undefined}
           ListFooterComponent={
             <View style={estilos.pie}>
@@ -166,23 +210,49 @@ export default function PantallaNotificaciones() {
   );
 }
 
-function FilaNotificacion({ notificacion, alPresionar }: { notificacion: Notificacion; alPresionar: () => void }) {
+interface PropsFila {
+  notificacion: Notificacion;
+  alPresionar: () => void;
+  alDescartar: () => void;
+  descartando: boolean;
+  descarteBloqueado: boolean;
+}
+
+function FilaNotificacion({ notificacion, alPresionar, alDescartar, descartando, descarteBloqueado }: PropsFila) {
   const noLeida = !notificacion.leida;
   const cuando = haceCuanto(notificacion.creadaEn);
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${noLeida ? 'Sin leer: ' : ''}${notificacion.texto}. ${cuando}`}
-      onPress={alPresionar}
-      style={({ pressed }) => [estilos.fila, noLeida ? estilos.filaNoLeida : null, pressed ? estilos.filaPresionada : null]}
-    >
-      {/* El punto acompaña a la negrita y a la etiqueta accesible: el color no es la única señal */}
-      <View style={[estilos.punto, noLeida ? estilos.puntoNoLeida : null]} />
-      <View style={estilos.textos}>
-        <Text style={[estilos.texto, noLeida ? estilos.textoNoLeida : null]}>{notificacion.texto}</Text>
-        <Text style={estilos.cuando}>{cuando}</Text>
-      </View>
-    </Pressable>
+    <View style={[estilos.fila, noLeida ? estilos.filaNoLeida : null]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${noLeida ? 'Sin leer: ' : ''}${notificacion.texto}. ${cuando}`}
+        onPress={alPresionar}
+        style={({ pressed }) => [estilos.contenidoFila, pressed ? estilos.filaPresionada : null]}
+      >
+        {/* El punto acompaña a la negrita y a la etiqueta accesible: el color no es la única señal */}
+        <View style={[estilos.punto, noLeida ? estilos.puntoNoLeida : null]} />
+        <View style={estilos.textos}>
+          <Text style={[estilos.texto, noLeida ? estilos.textoNoLeida : null]}>{notificacion.texto}</Text>
+          <Text style={estilos.cuando}>{cuando}</Text>
+        </View>
+      </Pressable>
+      {/* A5: descartar sin confirmación, a pedido del equipo */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Descartar notificación: ${notificacion.texto}`}
+        accessibilityState={{ disabled: descarteBloqueado, busy: descartando }}
+        disabled={descarteBloqueado}
+        onPress={alDescartar}
+        hitSlop={8}
+        style={({ pressed }) => [
+          estilos.descartar,
+          pressed ? estilos.filaPresionada : null,
+          descarteBloqueado ? estilos.descartarBloqueado : null,
+        ]}
+      >
+        <Text style={estilos.textoDescartar}>×</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -209,9 +279,9 @@ const estilos = StyleSheet.create({
   esqueleto: { height: 64, borderRadius: 14, backgroundColor: colores.superficieSutil },
   fila: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 14,
-    minHeight: 44,
+    alignItems: 'flex-start',
+    paddingVertical: 4,
+    paddingRight: 4,
     borderRadius: 14,
     backgroundColor: colores.superficie,
     borderWidth: 1,
@@ -219,6 +289,10 @@ const estilos = StyleSheet.create({
   },
   filaNoLeida: { backgroundColor: colores.primarioClaro, borderColor: colores.primarioClaro },
   filaPresionada: { opacity: 0.85 },
+  contenidoFila: { flex: 1, flexDirection: 'row', gap: 12, padding: 10, paddingLeft: 14, minHeight: 44 },
+  descartar: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  descartarBloqueado: { opacity: 0.5 },
+  textoDescartar: { fontFamily: fuentes.texto, fontSize: 24, lineHeight: 28, color: colores.textoSuave },
   punto: { width: 10, height: 10, marginTop: 6, borderRadius: 5 },
   puntoNoLeida: { backgroundColor: colores.primario },
   textos: { flex: 1, gap: 4 },

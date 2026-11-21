@@ -42,6 +42,12 @@ export async function marcarNotificacionLeida(id: string): Promise<number> {
   return cantidad;
 }
 
+/** CU40 A5: descarta (elimina) una notificación; devuelve la cantidad sin leer que queda. */
+export async function descartarNotificacion(id: string): Promise<number> {
+  const { cantidad } = await pedir<CantidadNoLeidas>(`/api/notificaciones/${encodeURIComponent(id)}`, { metodo: 'DELETE' });
+  return cantidad;
+}
+
 /** CU40 A1: marca las recibidas hasta "hasta"; devuelve la cantidad sin leer que queda. */
 export async function marcarTodasLasNotificacionesLeidas(hasta: Date): Promise<number> {
   const { cantidad } = await pedir<CantidadNoLeidas>('/api/notificaciones/marcar-todas-leidas', {
