@@ -7,6 +7,7 @@ import { listarDeportes } from '../../src/api/deportes';
 import type { Deporte, UbicacionDelUsuario } from '../../src/api/tipos';
 import { Avatar } from '../../src/componentes/Avatar';
 import { Boton } from '../../src/componentes/Boton';
+import { CampanaNotificaciones } from '../../src/componentes/CampanaNotificaciones';
 import { EsqueletoDeActividades } from '../../src/componentes/EsqueletoDeActividades';
 import { PanelDeFiltros } from '../../src/componentes/PanelDeFiltros';
 import { ResultadosDeBusqueda } from '../../src/componentes/ResultadosDeBusqueda';
@@ -116,9 +117,13 @@ export default function PantallaExplorar() {
     <SafeAreaView style={estilos.pantalla} edges={['top', 'left', 'right']}>
       <View style={estilos.barra}>
         <Text style={estilos.titulo}>Explorar actividades</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Mi perfil" onPress={() => router.push('/perfil')} hitSlop={8}>
-          <Avatar nombre={sesion.usuario.nombre} fotoUrl={sesion.usuario.fotoUrl} tamano={40} />
-        </Pressable>
+        <View style={estilos.accionesBarra}>
+          {/* CU40 – Notificaciones */}
+          <CampanaNotificaciones />
+          <Pressable accessibilityRole="button" accessibilityLabel="Mi perfil" onPress={() => router.push('/perfil')} hitSlop={8}>
+            <Avatar nombre={sesion.usuario.nombre} fotoUrl={sesion.usuario.fotoUrl} tamano={40} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={estilos.acciones}>
@@ -183,6 +188,7 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
+  accionesBarra: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titulo: { flex: 1, fontFamily: fuentes.titulos, fontWeight: '800', fontSize: 26, color: colores.texto },
   acciones: { paddingHorizontal: 20, paddingBottom: 12, gap: 10, alignItems: 'flex-start' },
   botones: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
