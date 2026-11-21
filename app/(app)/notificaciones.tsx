@@ -239,13 +239,14 @@ function FilaNotificacion({ notificacion, alPresionar, alMarcarLeida, marcando, 
           disabled={marcadoBloqueado}
           onPress={alMarcarLeida}
           hitSlop={8}
-          style={({ pressed }) => [
-            estilos.marcarLeida,
-            pressed ? estilos.filaPresionada : null,
-            marcadoBloqueado ? estilos.marcarLeidaBloqueado : null,
-          ]}
+          style={[estilos.marcarLeida, marcadoBloqueado ? estilos.marcarLeidaBloqueado : null]}
         >
-          <Text style={estilos.textoMarcarLeida}>✓</Text>
+          {/* El tilde va en un círculo, igual que en la web */}
+          {({ pressed }) => (
+            <View style={[estilos.circulo, pressed ? estilos.circuloPresionado : null]}>
+              <Text style={[estilos.textoMarcarLeida, pressed ? estilos.textoMarcarLeidaPresionado : null]}>✓</Text>
+            </View>
+          )}
         </Pressable>
       ) : (
         <View style={estilos.marcarLeida} />
@@ -277,7 +278,7 @@ const estilos = StyleSheet.create({
   esqueleto: { height: 64, borderRadius: 14, backgroundColor: colores.superficieSutil },
   fila: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingVertical: 4,
     paddingRight: 4,
     borderRadius: 14,
@@ -290,7 +291,24 @@ const estilos = StyleSheet.create({
   contenidoFila: { flex: 1, flexDirection: 'row', gap: 12, padding: 10, paddingLeft: 14, minHeight: 44 },
   marcarLeida: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
   marcarLeidaBloqueado: { opacity: 0.5 },
-  textoMarcarLeida: { fontFamily: fuentes.texto, fontSize: 20, lineHeight: 24, fontWeight: '700', color: colores.primario },
+  circulo: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: colores.borde,
+    backgroundColor: colores.superficie,
+    shadowColor: colores.texto,
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  circuloPresionado: { backgroundColor: colores.superficieSutil },
+  textoMarcarLeida: { fontFamily: fuentes.texto, fontSize: 16, lineHeight: 20, color: colores.textoSuave },
+  textoMarcarLeidaPresionado: { color: colores.primario },
   punto: { width: 10, height: 10, marginTop: 6, borderRadius: 5 },
   puntoNoLeida: { backgroundColor: colores.primario },
   textos: { flex: 1, gap: 4 },
