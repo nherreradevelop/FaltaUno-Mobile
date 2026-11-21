@@ -14,7 +14,7 @@ function colorDeLaOpcion(activa: boolean): string {
 }
 
 /** Alto de la barra sin contar el margen seguro inferior: ícono, texto y el área táctil de 44 puntos (RN7). */
-const ALTO_BARRA = 60;
+const ALTO_BARRA = 64;
 
 /** RN7: la sección activa se distingue por el ícono relleno y el texto en negrita, además del color. */
 function nombreDelIcono(seccion: Seccion, activa: boolean): NombreIcono {
