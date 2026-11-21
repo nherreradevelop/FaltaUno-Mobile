@@ -35,13 +35,24 @@ import { EstrellasDeValoracion } from './EstrellasDeValoracion';
 import { useSesion } from '../sesion/SesionContexto';
 import { MapaDelRecorrido } from './MapaDelRecorrido';
 
+/** Datos con los que CU10 abre esta pantalla al terminar el alta. */
+export interface ActividadRecienCreada {
+  destinoProvisional: boolean;
+}
+
 type EstadoPantalla = { tipo: 'cargando' } | { tipo: 'listo'; actividad: DetalleActividad } | ErrorDeActividad;
 
 /**
  * M – CU09 Detalle de actividad. La usa app/(app)/actividades/[id]/index.tsx.
  * Sin sesión, app/_layout.tsx lleva al login y después vuelve acá (A3).
  */
-export function PantallaDetalleActividad({ actividadId }: { actividadId: string }) {
+export function PantallaDetalleActividad({
+  actividadId,
+  actividadCreada = null,
+}: {
+  actividadId: string;
+  actividadCreada?: ActividadRecienCreada | null;
+}) {
   const { estado, reintentar } = useDetalle(actividadId);
   const actividad = estado.tipo === 'listo' ? estado.actividad : null;
   // CU09 A1: una sola llamada para los avatares de la cabecera y la pestaña Participantes
@@ -95,17 +106,20 @@ export function PantallaDetalleActividad({ actividadId }: { actividadId: string 
         }
         contentContainerStyle={estilos.contenido}
         ListHeaderComponent={
-          <EncabezadoDelDetalle
-            estado={estado}
-            reintentar={reintentar}
-            participantes={participantes}
-            pestanaActiva={pestanaActiva}
-            alElegirPestana={setPestanaActiva}
-            alVerTodos={verTodosLosParticipantes}
-            alUbicarPestanas={(y) => {
-              posicionDePestanas.current = y;
-            }}
-          />
+          <>
+            {actividadCreada && <AvisoDeActividadCreada actividadCreada={actividadCreada} />}
+            <EncabezadoDelDetalle
+              estado={estado}
+              reintentar={reintentar}
+              participantes={participantes}
+              pestanaActiva={pestanaActiva}
+              alElegirPestana={setPestanaActiva}
+              alVerTodos={verTodosLosParticipantes}
+              alUbicarPestanas={(y) => {
+                posicionDePestanas.current = y;
+              }}
+            />
+          </>
         }
         ListFooterComponent={
           actividad ? (
@@ -298,6 +312,24 @@ function useParticipantes(actividadId: string, habilitado: boolean): EstadoParti
 interface PropsEncabezado extends Omit<PropsDetalle, 'actividad'> {
   estado: EstadoPantalla;
   reintentar: () => void;
+}
+
+/** CU10 FP paso 11: confirma el alta cuando se llega desde la creación de la actividad. */
+function AvisoDeActividadCreada({ actividadCreada }: { actividadCreada: ActividadRecienCreada }) {
+  return (
+    <View style={estilos.avisosDeCreacion}>
+      <Text accessibilityRole="alert" style={estilos.avisoInfo}>
+        ¡Actividad creada! Ya estás registrado como organizador y participante.
+      </Text>
+      {actividadCreada.destinoProvisional && (
+        <View style={estilos.aviso}>
+          <Text style={estilos.textoAviso}>
+            Usamos una ubicación por defecto como destino. Como organizador, tenés que editarla más adelante.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 function EncabezadoDelDetalle({ estado, reintentar, ...props }: PropsEncabezado) {
@@ -804,6 +836,7 @@ const estilos = StyleSheet.create({
   textoSuave: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
   aviso: { backgroundColor: colores.errorFondo, borderRadius: 14, padding: 14, overflow: 'hidden' },
   avisoConBoton: { gap: 12 },
+  avisosDeCreacion: { gap: 12, marginBottom: 16 },
   textoAviso: { fontFamily: fuentes.texto, fontSize: 14, lineHeight: 20, color: colores.error },
   avisoInfo: {
     backgroundColor: colores.primarioClaro,

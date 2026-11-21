@@ -15,13 +15,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  crearActividad,
-  opcionesActividad,
-  type ActividadCreada,
-  type DatosCrearActividad,
-  type OpcionesActividad,
-} from '../api/actividades';
+import { crearActividad, opcionesActividad, type DatosCrearActividad, type OpcionesActividad } from '../api/actividades';
 import { ErrorApi } from '../api/cliente';
 import { aCentavos, mostrarImporte, nuevaClave, resultadoIncierto } from '../comun/formularioActividad';
 import { colores, fuentes } from '../comun/tema';
@@ -32,7 +26,10 @@ import { SelectorFechaHoraActividad } from './SelectorFechaHoraActividad';
 import { useSesion } from '../sesion/SesionContexto';
 import { useFormularioActividad } from '../hooks/useFormularioActividad';
 
-/** CU10 mobile. Conserva el formulario y la intención de alta hasta conocer su resultado. */
+/**
+ * CU10 mobile. Conserva el formulario y la intención de alta hasta conocer su resultado.
+ * Al confirmarse el alta se abre el detalle de la actividad creada (CU10 FP paso 11 → CU09).
+ */
 export function FormularioActividad() {
   const margenesSeguros = useSafeAreaInsets();
   const { sesion } = useSesion();
@@ -44,7 +41,6 @@ export function FormularioActividad() {
   );
   const [enviando, setEnviando] = useState(false);
   const [pendiente, setPendiente] = useState(false);
-  const [creada, setCreada] = useState<ActividadCreada | null>(null);
   const [recarga, setRecarga] = useState(0);
   const intento = useRef<{ datos: DatosCrearActividad; clave: string } | null>(null);
   const envioEnCurso = useRef(false);
@@ -67,7 +63,7 @@ export function FormularioActividad() {
       vigente = false;
     };
   }, [recarga]);
-  usePreventRemove(!permitirSalida && !creada && sesion !== null, ({ repeat }) => {
+  const desactivarConfirmacionDeSalida = usePreventRemove(!permitirSalida && sesion !== null, ({ repeat }) => {
     if (enviando || pendiente) {
       Alert.alert('Confirmación pendiente', 'Reintentá para conocer el resultado antes de salir.');
       return;
@@ -94,9 +90,14 @@ export function FormularioActividad() {
       envioEnCurso.current = true;
       setEnviando(true);
       const resultado = await crearActividad(intento.current.datos, intento.current.clave);
-      setCreada(resultado);
-      setPendiente(false);
-      intento.current = null;
+      // La protección contra salir se apaga antes de navegar: el estado recién se aplica en el próximo render
+      setPermitirSalida(true);
+      desactivarConfirmacionDeSalida();
+      // replace: con "Atrás" desde el detalle no se regresa a un formulario ya enviado
+      router.replace({
+        pathname: '/actividades/[id]',
+        params: { id: resultado.id, creada: 'si', destinoProvisional: resultado.destinoProvisional ? 'si' : 'no' },
+      });
     } catch (fallo) {
       const incierto = fallo instanceof ErrorApi && resultadoIncierto(fallo);
       setPendiente(incierto);
@@ -136,35 +137,6 @@ export function FormularioActividad() {
   } catch {
     /* La validación se informa al confirmar. */
   }
-  if (creada)
-    return (
-      <SafeAreaView style={estilos.pantalla}>
-        <ScrollView contentContainerStyle={estilos.contenido}>
-          <Text style={estilos.chip}>Programada</Text>
-          <Text style={estilos.titulo}>¡Actividad creada!</Text>
-          <Text style={estilos.subtitulo}>{creada.nombre}</Text>
-          {creada.destinoProvisional && (
-            <Text style={estilos.error}>
-              Usamos una ubicación por defecto como destino. Como organizador, tenés que editarla más adelante.
-            </Text>
-          )}
-          <Text style={estilos.texto}>Ya estás registrado como organizador y participante.</Text>
-          <Text style={estilos.texto}>
-            {creada.cantidadParticipantes} participantes · {creada.cuposDisponibles} lugares disponibles
-          </Text>
-          {creada.costoPorPersonaCentavos !== null && (
-            <Text style={estilos.texto}>
-              Costo total: {mostrarImporte(creada.costoEstimadoCentavos!)}. Aproximado por participante actual:{' '}
-              {mostrarImporte(creada.costoPorPersonaCentavos)}.
-            </Text>
-          )}
-          <Text selectable style={estilos.nota}>
-            Identificador: {creada.id}
-          </Text>
-          <Boton texto="Volver al inicio" alPresionar={() => router.replace('/')} />
-        </ScrollView>
-      </SafeAreaView>
-    );
   return (
     <SafeAreaView style={estilos.pantalla}>
       <KeyboardAvoidingView style={estilos.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -451,5 +423,4 @@ const estilos = StyleSheet.create({
   aviso: { backgroundColor: colores.errorFondo, padding: 14, borderRadius: 14, gap: 6 },
   error: { color: colores.error, fontFamily: fuentes.texto, fontSize: 15 },
   pronostico: { backgroundColor: colores.primarioClaro, padding: 16, borderRadius: 16, gap: 8 },
-  chip: { color: colores.exito, fontFamily: fuentes.texto, fontWeight: '700' },
 });
