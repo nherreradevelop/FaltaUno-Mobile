@@ -93,9 +93,10 @@ export function FormularioActividad() {
       // La protección contra salir se apaga antes de navegar: el estado recién se aplica en el próximo render
       setPermitirSalida(true);
       desactivarConfirmacionDeSalida();
-      // replace: con "Atrás" desde el detalle no se regresa a un formulario ya enviado
+      // replace: con "Atrás" desde el detalle no se regresa a un formulario ya enviado.
+      // Se nombra la sección (CU39): crear una actividad se abre desde Explorar y el detalle se muestra ahí.
       router.replace({
-        pathname: '/actividades/[id]',
+        pathname: '/(explorar)/actividades/[id]',
         params: { id: resultado.id, creada: 'si', destinoProvisional: resultado.destinoProvisional ? 'si' : 'no' },
       });
     } catch (fallo) {

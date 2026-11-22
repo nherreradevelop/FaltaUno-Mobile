@@ -1,13 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Boton } from '../../../../src/componentes/Boton';
-import { LimiteDeError } from '../../../../src/componentes/LimiteDeError';
-import { colores, fuentes } from '../../../../src/comun/tema';
-import { PantallaDetalleActividad } from '../../../../src/componentes/PantallaDetalleActividad';
+import { Boton } from '../../../../../../src/componentes/Boton';
+import { LimiteDeError } from '../../../../../../src/componentes/LimiteDeError';
+import { colores, fuentes } from '../../../../../../src/comun/tema';
+import { PantallaDetalleActividad } from '../../../../../../src/componentes/PantallaDetalleActividad';
 
 /**
- * M – CU09 Detalle de actividad. También se abre con el enlace faltauno://actividades/<id> (A3).
+ * M – CU09 Detalle de actividad. También se abre con el enlace faltauno://actividades/<id> (A3), dentro de Explorar (CU39 A4).
+ * Se abre dentro de la sección de la barra en la que está el usuario (CU39 A2).
  * Pendiente: CU08 (búsqueda), CU14 (mis actividades) y CU18 (invitaciones) navegan acá con router.push(`/actividades/${id}`).
  */
 export default function PantallaActividad() {
@@ -19,7 +20,7 @@ export default function PantallaActividad() {
     <LimiteDeError
       key={id}
       alternativa={(reintentar) => (
-        <SafeAreaView style={estilos.pantalla}>
+        <SafeAreaView style={estilos.pantalla} edges={['top', 'left', 'right']}>
           <View style={estilos.contenido}>
             <Text accessibilityRole="alert" style={estilos.mensaje}>
               No fue posible cargar el detalle de la actividad. Probá de nuevo más tarde.

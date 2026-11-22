@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
-import { PantallaPerfil } from '../../../src/componentes/PantallaPerfil';
-import { useSesion } from '../../../src/sesion/SesionContexto';
+import { PantallaPerfil } from '../../../../../src/componentes/PantallaPerfil';
+import { useSesion } from '../../../../../src/sesion/SesionContexto';
 
 /**
  * M – CU04 A1: perfil público de otro usuario.
