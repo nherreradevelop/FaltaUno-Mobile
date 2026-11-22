@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { detalleUbicacion, resolverPunto, type Coordenadas, type LugarActividad } from '../api/actividades';
 import { hayClaveDeMapasNativos } from '../comun/mapasNativos';
 import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
@@ -139,97 +139,100 @@ export function MapaUbicacion({ etiqueta, centroInicial, valor, alConfirmar, alC
         if (!validacion.current) alCancelar();
       }}
     >
-      <SafeAreaView style={estilos.pantalla}>
-        <View style={estilos.encabezado}>
-          <Text accessibilityRole="header" style={estilos.titulo}>
-            {etiqueta}
-          </Text>
-          <Text style={estilos.texto}>Tocá para colocar el pin. Mantenelo presionado para arrastrarlo.</Text>
-        </View>
-        <View style={estilos.contenedorMapa}>
-          {!tieneClave ? (
-            <Text style={estilos.error}>El mapa no está configurado. Podés volver a buscar un lugar por nombre.</Text>
-          ) : cargando ? (
-            <ActivityIndicator accessibilityLabel="Cargando mapa" color={colores.primario} />
-          ) : (
-            <>
-              <MapView
-                ref={mapa}
-                style={StyleSheet.absoluteFill}
-                provider={PROVIDER_GOOGLE}
-                initialRegion={regionDe(centro)}
-                loadingEnabled
-                showsMyLocationButton={false}
-                showsUserLocation={false}
-                toolbarEnabled={false}
-                moveOnMarkerPress={false}
-                onMapReady={() => setListo(true)}
-                onRegionChangeComplete={(region) => {
-                  centroActual.current = { lat: region.latitude, lng: region.longitude };
-                }}
-                onPress={(evento) =>
-                  marcar({ lat: evento.nativeEvent.coordinate.latitude, lng: evento.nativeEvent.coordinate.longitude })
-                }
-              >
-                {punto && (
-                  <Marker
-                    coordinate={{ latitude: punto.lat, longitude: punto.lng }}
-                    pinColor={colores.primario}
-                    draggable
-                    title="Punto seleccionado"
-                    onDragEnd={(evento) =>
-                      marcar({ lat: evento.nativeEvent.coordinate.latitude, lng: evento.nativeEvent.coordinate.longitude })
-                    }
-                  />
-                )}
-              </MapView>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !listo || validando || localizando, busy: localizando }}
-                disabled={!listo || validando || localizando}
-                style={[estilos.miUbicacion, (!listo || validando || localizando) && estilos.inactivo]}
-                onPress={() => void usarMiUbicacion()}
-              >
-                <Text style={estilos.enlace}>{localizando ? 'Obteniendo ubicación…' : 'Usar mi ubicación'}</Text>
-              </Pressable>
-            </>
-          )}
-        </View>
-        <View style={estilos.pie}>
-          {localizando && (
-            <Text accessibilityLiveRegion="polite" style={estilos.texto}>
-              Esperando tu ubicación. Android o iOS puede pedirte permiso.
+      {/* El modal se dibuja en su propia ventana: sin un proveedor propio, el margen seguro queda en cero en iOS */}
+      <SafeAreaProvider>
+        <SafeAreaView style={estilos.pantalla}>
+          <View style={estilos.encabezado}>
+            <Text accessibilityRole="header" style={estilos.titulo}>
+              {etiqueta}
             </Text>
-          )}
-          {precision !== null && (
-            <Text style={estilos.texto}>Ubicación aproximada (±{Math.ceil(precision)} m). Podés ajustar el pin.</Text>
-          )}
-          {punto && (
-            <Text style={estilos.coordenadas}>
-              {punto.lat.toFixed(6)}, {punto.lng.toFixed(6)}
-            </Text>
-          )}
-          {!!error && (
-            <Text accessibilityRole="alert" style={estilos.error}>
-              {error}
-            </Text>
-          )}
-          <Boton
-            texto="Marcar el centro del mapa"
-            variante="secundario"
-            deshabilitado={!listo || validando}
-            alPresionar={() => marcar(centroActual.current)}
-          />
-          <Boton
-            texto="Usar este punto"
-            cargando={validando}
-            deshabilitado={!listo || !punto || localizando}
-            alPresionar={() => void confirmar()}
-          />
-          <Boton texto="Volver a buscar lugar" variante="secundario" deshabilitado={validando} alPresionar={alCancelar} />
-          <Text style={estilos.nota}>Se conserva el punto del pin; la dirección puede ser una referencia cercana.</Text>
-        </View>
-      </SafeAreaView>
+            <Text style={estilos.texto}>Tocá para colocar el pin. Mantenelo presionado para arrastrarlo.</Text>
+          </View>
+          <View style={estilos.contenedorMapa}>
+            {!tieneClave ? (
+              <Text style={estilos.error}>El mapa no está configurado. Podés volver a buscar un lugar por nombre.</Text>
+            ) : cargando ? (
+              <ActivityIndicator accessibilityLabel="Cargando mapa" color={colores.primario} />
+            ) : (
+              <>
+                <MapView
+                  ref={mapa}
+                  style={StyleSheet.absoluteFill}
+                  provider={PROVIDER_GOOGLE}
+                  initialRegion={regionDe(centro)}
+                  loadingEnabled
+                  showsMyLocationButton={false}
+                  showsUserLocation={false}
+                  toolbarEnabled={false}
+                  moveOnMarkerPress={false}
+                  onMapReady={() => setListo(true)}
+                  onRegionChangeComplete={(region) => {
+                    centroActual.current = { lat: region.latitude, lng: region.longitude };
+                  }}
+                  onPress={(evento) =>
+                    marcar({ lat: evento.nativeEvent.coordinate.latitude, lng: evento.nativeEvent.coordinate.longitude })
+                  }
+                >
+                  {punto && (
+                    <Marker
+                      coordinate={{ latitude: punto.lat, longitude: punto.lng }}
+                      pinColor={colores.primario}
+                      draggable
+                      title="Punto seleccionado"
+                      onDragEnd={(evento) =>
+                        marcar({ lat: evento.nativeEvent.coordinate.latitude, lng: evento.nativeEvent.coordinate.longitude })
+                      }
+                    />
+                  )}
+                </MapView>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !listo || validando || localizando, busy: localizando }}
+                  disabled={!listo || validando || localizando}
+                  style={[estilos.miUbicacion, (!listo || validando || localizando) && estilos.inactivo]}
+                  onPress={() => void usarMiUbicacion()}
+                >
+                  <Text style={estilos.enlace}>{localizando ? 'Obteniendo ubicación…' : 'Usar mi ubicación'}</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+          <View style={estilos.pie}>
+            {localizando && (
+              <Text accessibilityLiveRegion="polite" style={estilos.texto}>
+                Esperando tu ubicación. Android o iOS puede pedirte permiso.
+              </Text>
+            )}
+            {precision !== null && (
+              <Text style={estilos.texto}>Ubicación aproximada (±{Math.ceil(precision)} m). Podés ajustar el pin.</Text>
+            )}
+            {punto && (
+              <Text style={estilos.coordenadas}>
+                {punto.lat.toFixed(6)}, {punto.lng.toFixed(6)}
+              </Text>
+            )}
+            {!!error && (
+              <Text accessibilityRole="alert" style={estilos.error}>
+                {error}
+              </Text>
+            )}
+            <Boton
+              texto="Marcar el centro del mapa"
+              variante="secundario"
+              deshabilitado={!listo || validando}
+              alPresionar={() => marcar(centroActual.current)}
+            />
+            <Boton
+              texto="Usar este punto"
+              cargando={validando}
+              deshabilitado={!listo || !punto || localizando}
+              alPresionar={() => void confirmar()}
+            />
+            <Boton texto="Volver a buscar lugar" variante="secundario" deshabilitado={validando} alPresionar={alCancelar} />
+            <Text style={estilos.nota}>Se conserva el punto del pin; la dirección puede ser una referencia cercana.</Text>
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
