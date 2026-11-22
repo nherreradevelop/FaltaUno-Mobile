@@ -32,7 +32,7 @@ export interface OpcionPendiente {
 
 /**
  * CU09 FP paso 4: las acciones se reparten en tres lugares, de más a menos usadas. Todas pertenecen a otro caso de
- * uso: se muestran deshabilitadas hasta que exista. La API decide cuáles corresponden a cada usuario (RN2).
+ * uso: se muestran deshabilitadas hasta que exista (unirse, CU11, ya está). La API decide cuáles corresponden a cada usuario (RN2).
  * "Modificar mi participación" (CU28) no se muestra por decisión del equipo, aunque la API la siga ofreciendo.
  * "Valorar" (CU21) no es un botón: son estrellas junto a cada participante, en la pestaña Participantes.
  */
@@ -42,7 +42,7 @@ export interface OpcionPendiente {
  * El chat grupal no va acá: ya es una pestaña del detalle (decisión del equipo, para no tener dos accesos).
  */
 const CANDIDATAS_A_ACCION_PRINCIPAL: OpcionPendiente[] = [
-  { opcion: 'unirse', etiqueta: 'Unirme a la actividad', casoDeUso: 'CU11' }, // Pendiente: CU11
+  { opcion: 'unirse', etiqueta: 'Unirme a la actividad', casoDeUso: 'CU11' },
 ];
 
 /** Acciones de un toque, como íconos junto al título. */

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { detalleUbicacion, resolverPunto, type Coordenadas, type LugarActividad } from '../api/actividades';
+import { hayClaveDeMapasNativos } from '../comun/mapasNativos';
 import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
 import { ubicarDispositivo } from '../infra/geolocalizacion';
 import { Boton } from './Boton';
@@ -35,9 +36,7 @@ export function MapaUbicacion({ etiqueta, centroInicial, valor, alConfirmar, alC
   const [localizando, setLocalizando] = useState(false);
   const [precision, setPrecision] = useState<number | null>(null);
   const [error, setError] = useState('');
-  const tieneClave = Boolean(
-    Platform.OS === 'ios' ? process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY : process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY,
-  );
+  const tieneClave = hayClaveDeMapasNativos();
   const { lat: centroLat, lng: centroLng } = centroInicial;
 
   useEffect(() => {
