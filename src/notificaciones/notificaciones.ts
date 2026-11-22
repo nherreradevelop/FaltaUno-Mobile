@@ -13,14 +13,8 @@ export interface AvisoDeNotificacionNueva {
   noLeidas: number;
 }
 
-const MAXIMO_EN_EL_INDICADOR = 9;
-
-/** CU40 RN4: el indicador muestra la cantidad hasta 9 y "9+" desde 10; con cero no se muestra (null). */
-export function textoDelIndicador(cantidad: number): string | null {
-  if (cantidad <= 0) return null;
-  if (cantidad > MAXIMO_EN_EL_INDICADOR) return `${MAXIMO_EN_EL_INDICADOR}+`;
-  return String(cantidad);
-}
+/** CU40 RN4: misma regla que los indicadores de la barra de navegación (CU39 RN5). */
+export { textoDelIndicador } from '../comun/indicador';
 
 /** CU40 RN9: texto alternativo del ícono, con la cantidad sin leer. */
 export function etiquetaDelIcono(cantidad: number): string {

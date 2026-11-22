@@ -217,9 +217,10 @@ function BarraDeAccionPrincipal({ actividad }: { actividad: DetalleActividad }) 
     });
   }
   return (
-    <SafeAreaView edges={['bottom']} style={estilos.barraInferior}>
+    // Sin margen seguro inferior: queda arriba de la barra de navegación, que ya lo tiene (CU39)
+    <View style={estilos.barraInferior}>
       <Boton texto={principal.etiqueta} alPresionar={abrirFormularioParaUnirse} />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -804,7 +805,7 @@ const estilos = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colores.borde,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingVertical: 12,
   },
   fondoMenu: { flex: 1, backgroundColor: colores.velo, alignItems: 'flex-end', paddingTop: 110, paddingRight: 16 },
   menu: { width: 250, backgroundColor: colores.superficie, borderRadius: 16, padding: 8 },

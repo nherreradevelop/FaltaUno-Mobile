@@ -1,5 +1,5 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useFocusEffect, useNavigation, useScrollToTop } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, SectionList, StyleSheet, Text, View } from 'react-native';
 import type { FiltrosDeBusqueda, UbicacionDelUsuario } from '../api/tipos';
 import { FILTROS_INICIALES } from '../comun/filtrosDeSesion';
@@ -16,17 +16,49 @@ interface PropsResultados {
 }
 
 /**
+ * Cuenta las veces que hay que volver a pedir las actividades: al entrar y al volver a la pantalla desde otra
+ * pantalla de Explorar (por ejemplo, el detalle de una actividad), para mostrar los cambios que hubo.
+ * CU39 FP paso 7: al volver desde otra sección de la barra no se recarga, así se conserva la lista y su posición.
+ */
+function useActualizacionAlVolver(): number {
+  const navigation = useNavigation();
+  const [actualizacion, setActualizacion] = useState(0);
+  const volvioDeOtraSeccion = useRef(false);
+
+  useEffect(() => {
+    const desuscribir = navigation.addListener('blur', () => {
+      // Si la sección (Explorar) también dejó de estar activa, el usuario se fue a otra sección de la barra
+      const seccion = navigation.getParent();
+      volvioDeOtraSeccion.current = seccion !== undefined && !seccion.isFocused();
+    });
+    return desuscribir;
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (volvioDeOtraSeccion.current) {
+        volvioDeOtraSeccion.current = false;
+        return;
+      }
+      setActualizacion((anterior) => anterior + 1);
+    }, []),
+  );
+
+  return actualizacion;
+}
+
+/**
  * Dashboard con paginación independiente por sección y una sola lista virtualizada.
  * Hasta que respondan las dos secciones propias se muestra un esqueleto, así no aparecen después
  * y empujan hacia abajo la lista que el usuario ya estaba mirando.
  */
 export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
-  const [actualizacion, setActualizacion] = useState(0);
-  useFocusEffect(
-    useCallback(() => {
-      setActualizacion((anterior) => anterior + 1);
-    }, []),
-  );
+  const lista = useRef<SectionList>(null);
+  // CU39 A1 paso 2: tocar "Explorar" en la barra estando en esta pantalla sube la lista al inicio.
+  // SectionList no tiene scrollTo: se sube con su ScrollView interno.
+  const subirAlInicio = useRef({ scrollToTop: () => lista.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true }) });
+  useScrollToTop(subirAlInicio);
+  const actualizacion = useActualizacionAlVolver();
   const gestionando = useActividadesPorGrupo('gestionando', FILTROS_INICIALES, ubicacion, actualizacion);
   const unido = useActividadesPorGrupo('unido', FILTROS_INICIALES, ubicacion, actualizacion);
   const otras = useActividadesPorGrupo('otras', filtros, ubicacion, actualizacion);
@@ -66,6 +98,7 @@ export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
 
   return (
     <SectionList
+      ref={lista}
       sections={secciones}
       keyExtractor={(actividad) => actividad.id}
       renderItem={({ item }) => (

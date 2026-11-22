@@ -5,13 +5,17 @@ import { useEffect, useRef, useState } from 'react';
 /** Rutas a las que se puede volver después del login. Por ahora, el detalle de una actividad (CU09 A3, CU19). */
 const PREFIJO_ACTIVIDAD = 'actividades/';
 
-/** De "faltauno://actividades/<id>" devuelve "/actividades/<id>"; de cualquier otro enlace, null. */
+/**
+ * De "faltauno://actividades/<id>" (o de la ruta "/actividades/<id>") devuelve la ruta del detalle dentro de
+ * Explorar, "/(explorar)/actividades/<id>" (CU39 A4); de cualquier otro enlace, null.
+ * Se nombra la sección porque el detalle existe en todas: sin ella, Expo Router elegiría la primera en orden alfabético.
+ */
 export function rutaDeEnlace(url: string): string | null {
-  const { path } = Linking.parse(url);
+  const path = url.startsWith('/') ? url.slice(1) : Linking.parse(url).path;
   if (!path || !path.startsWith(PREFIJO_ACTIVIDAD)) {
     return null;
   }
-  return `/${path}`;
+  return `/(explorar)/${path}`;
 }
 
 /**

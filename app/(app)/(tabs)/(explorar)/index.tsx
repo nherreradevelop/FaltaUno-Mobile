@@ -1,27 +1,26 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { listarDepartamentos } from '../../src/api/actividades';
-import { listarDeportes } from '../../src/api/deportes';
-import type { Deporte, UbicacionDelUsuario } from '../../src/api/tipos';
-import { Avatar } from '../../src/componentes/Avatar';
-import { Boton } from '../../src/componentes/Boton';
-import { CampanaNotificaciones } from '../../src/componentes/CampanaNotificaciones';
-import { EsqueletoDeActividades } from '../../src/componentes/EsqueletoDeActividades';
-import { PanelDeFiltros } from '../../src/componentes/PanelDeFiltros';
-import { ResultadosDeBusqueda } from '../../src/componentes/ResultadosDeBusqueda';
+import { listarDepartamentos } from '../../../../src/api/actividades';
+import { listarDeportes } from '../../../../src/api/deportes';
+import type { Deporte, UbicacionDelUsuario } from '../../../../src/api/tipos';
+import { Boton } from '../../../../src/componentes/Boton';
+import { CampanaNotificaciones } from '../../../../src/componentes/CampanaNotificaciones';
+import { EsqueletoDeActividades } from '../../../../src/componentes/EsqueletoDeActividades';
+import { PanelDeFiltros } from '../../../../src/componentes/PanelDeFiltros';
+import { ResultadosDeBusqueda } from '../../../../src/componentes/ResultadosDeBusqueda';
 import {
   aFiltrosDeBusqueda,
   cantidadDeFiltrosAplicados,
   FILTROS_VACIOS,
   type FiltrosEnEdicion,
-} from '../../src/comun/filtrosDeBusqueda';
-import { mensajeFallaDeFiltros } from '../../src/comun/mensajesExplorar';
-import { colores, fuentes } from '../../src/comun/tema';
-import { obtenerUbicacion } from '../../src/comun/ubicacion';
-import { useFiltrosDeSesion } from '../../src/sesion/useFiltrosDeSesion';
-import { useSesion } from '../../src/sesion/SesionContexto';
+} from '../../../../src/comun/filtrosDeBusqueda';
+import { mensajeFallaDeFiltros } from '../../../../src/comun/mensajesExplorar';
+import { colores, fuentes } from '../../../../src/comun/tema';
+import { obtenerUbicacion } from '../../../../src/comun/ubicacion';
+import { useFiltrosDeSesion } from '../../../../src/sesion/useFiltrosDeSesion';
+import { useSesion } from '../../../../src/sesion/SesionContexto';
 
 interface OpcionesDeFiltros {
   deportes: Deporte[] | null;
@@ -118,11 +117,8 @@ export default function PantallaExplorar() {
       <View style={estilos.barra}>
         <Text style={estilos.titulo}>Explorar actividades</Text>
         <View style={estilos.accionesBarra}>
-          {/* CU40 – Notificaciones */}
+          {/* CU40 – Notificaciones. "Mi perfil" está en la barra de navegación (CU39) */}
           <CampanaNotificaciones />
-          <Pressable accessibilityRole="button" accessibilityLabel="Mi perfil" onPress={() => router.push('/perfil')} hitSlop={8}>
-            <Avatar nombre={sesion.usuario.nombre} fotoUrl={sesion.usuario.fotoUrl} tamano={40} />
-          </Pressable>
         </View>
       </View>
 

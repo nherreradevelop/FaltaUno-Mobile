@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useScrollToTop } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ActividadDelHistorial, Perfil } from '../api/tipos';
@@ -25,22 +25,30 @@ type EstadoPerfil = { tipo: 'cargando' } | { tipo: 'listo'; perfil: Perfil } | R
 
 /**
  * M – CU04 Visualizar perfil de usuario. Sin usuarioId muestra el perfil propio (FP); con usuarioId,
- * el perfil público de otro usuario (A1). La usan app/(app)/perfil/index.tsx y app/(app)/perfil/[id].tsx.
+ * el perfil público de otro usuario (A1). La usan las rutas perfil/index.tsx y perfil/[id].tsx de app/(app)/(tabs).
+ * "Mi perfil" es la pantalla principal de la sección Perfil de la barra (CU39), por eso no muestra "Volver".
  */
-export function PantallaPerfil({ usuarioId }: { usuarioId?: string }) {
+export function PantallaPerfil({ usuarioId, mostrarVolver = true }: { usuarioId?: string; mostrarVolver?: boolean }) {
+  const lista = useRef<FlatList<ActividadDelHistorial>>(null);
+  // CU39 A1 paso 2: tocar "Perfil" en la barra estando en esta pantalla sube la lista al inicio
+  useScrollToTop(lista);
   const { estado, reintentar } = usePerfil(usuarioId);
   const esPropio = estado.tipo === 'listo' && estado.perfil.esPropio;
   // El historial se pide solo en el perfil propio: el perfil público no lo muestra (A1)
   const historial = useHistorial(esPropio);
 
   return (
-    <SafeAreaView style={estilos.pantalla}>
-      <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.volver} hitSlop={12}>
-        <Text style={estilos.textoVolver}>‹ Volver</Text>
-      </Pressable>
+    // Sin el borde inferior: lo cubre la barra de navegación (CU39)
+    <SafeAreaView style={estilos.pantalla} edges={['top', 'left', 'right']}>
+      {mostrarVolver ? (
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.volver} hitSlop={12}>
+          <Text style={estilos.textoVolver}>‹ Volver</Text>
+        </Pressable>
+      ) : null}
 
       {/* FlatList y no ScrollView: el historial puede tener muchas actividades */}
       <FlatList
+        ref={lista}
         data={historial.actividades}
         keyExtractor={(actividad) => actividad.id}
         renderItem={({ item }) => <FilaDeActividad actividad={item} />}
