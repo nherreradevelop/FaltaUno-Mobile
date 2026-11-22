@@ -17,7 +17,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --experimental-transform-types --test test/formularioActividad.test.mjs test/filtrosDeSesion.test.mjs test/formato.test.mjs test/detalleActividad.test.mjs test/formularioUnirse.test.mjs test/puntosDePartida.test.mjs"
+    "test": "node --experimental-transform-types --test test/formularioActividad.test.mjs test/filtrosDeSesion.test.mjs test/formato.test.mjs test/detalleActividad.test.mjs test/notificaciones.test.mjs test/formularioUnirse.test.mjs test/puntosDePartida.test.mjs"
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "9.2.1",
@@ -37,7 +37,8 @@
     "react-native-maps": "1.29.11",
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.0",
-    "react-native-webview": "14.0.1"
+    "react-native-webview": "14.0.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
