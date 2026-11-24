@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -17,7 +18,7 @@ import {
   type CamposConError,
   type FormularioUnirse as DatosDelFormulario,
 } from '../comun/formularioUnirse';
-import { colores, fuentes } from '../comun/tema';
+import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
 import { Boton } from './Boton';
 import { Campo } from './Campo';
 import { SelectorUbicacion } from './SelectorUbicacion';
@@ -175,12 +176,22 @@ export function FormularioUnirse({ actividad }: { actividad: ActividadParaUnirse
                   error={campos[`invitados.${indice}`]}
                   editable={!enviando}
                   onChangeText={(valor) => cambiarInvitado(indice, valor)}
-                />
-                <Boton
-                  texto={`Quitar invitado ${indice + 1}`}
-                  variante="secundario"
-                  deshabilitado={enviando}
-                  alPresionar={() => quitarInvitado(indice)}
+                  accesorio={
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Quitar invitado ${indice + 1}`}
+                      accessibilityState={{ disabled: enviando }}
+                      disabled={enviando}
+                      onPress={() => quitarInvitado(indice)}
+                      style={({ pressed }) => [
+                        estilos.quitarInvitado,
+                        pressed ? estilos.quitarInvitadoPresionado : null,
+                        enviando ? estilos.deshabilitado : null,
+                      ]}
+                    >
+                      <Ionicons name="close" size={26} color={colores.error} />
+                    </Pressable>
+                  }
                 />
               </View>
             ))}
@@ -224,6 +235,10 @@ const estilos = StyleSheet.create({
   texto: { fontFamily: fuentes.texto, fontSize: 16, color: colores.texto },
   nota: { fontFamily: fuentes.texto, fontSize: 14, lineHeight: 20, color: colores.textoSuave },
   seccion: { gap: 12 },
+  // Área táctil de 44x44 para la cruz que quita un invitado
+  quitarInvitado: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  quitarInvitadoPresionado: { backgroundColor: colores.errorFondo },
+  deshabilitado: { opacity: OPACIDAD_DESHABILITADO },
   interruptor: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   aviso: { backgroundColor: colores.errorFondo, padding: 14, borderRadius: 14, gap: 6 },
   error: { color: colores.error, fontFamily: fuentes.texto, fontSize: 15 },
