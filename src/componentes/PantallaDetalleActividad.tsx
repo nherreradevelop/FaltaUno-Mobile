@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { obtenerDetalleDeActividad, obtenerParticipantes } from '../api/actividades';
 import type { DetalleActividad, ParticipanteDeActividad } from '../api/tipos';
+import type { MiValoracion } from '../api/valoraciones';
 import {
   formatearFechaHora,
   formatearLugaresLibres,
@@ -29,9 +30,12 @@ import {
 } from '../comun/mensajesActividad';
 import { ETIQUETA_ESTADO } from '../comun/mensajesPerfil';
 import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
+import { MENSAJES_VALORACION } from '../comun/valoraciones';
 import { Avatar } from './Avatar';
 import { Boton } from './Boton';
 import { EstrellasDeValoracion } from './EstrellasDeValoracion';
+import { FormularioDeValoracion } from './FormularioDeValoracion';
+import { ResumenDeValoraciones, useMisValoraciones, type EstadoMisValoraciones } from './ValoracionesDeActividad';
 import { useSesion } from '../sesion/SesionContexto';
 import { MapaDelRecorrido } from './MapaDelRecorrido';
 
@@ -60,6 +64,11 @@ export function PantallaDetalleActividad({
   const puedeRemover = actividad?.opciones.includes('removerParticipantes') ?? false;
   // RN5 / CU21: la API ofrece valorar cuando la actividad está iniciada o archivada y el usuario forma parte
   const puedeValorar = actividad?.opciones.includes('valorar') ?? false;
+  const misValoraciones = useMisValoraciones(actividadId, puedeValorar);
+  const valoraciones = puedeValorar ? misValoraciones : null;
+  // CU21 FP paso 3: el participante que se está valorando (el formulario está abierto)
+  const [valorando, setValorando] = useState<ParticipanteAValorar | null>(null);
+  const [avisoDeValoracion, setAvisoDeValoracion] = useState<string | null>(null);
   const { sesion } = useSesion();
   const usuarioActualId = sesion?.usuario.id ?? null;
   const [pestanaActiva, setPestanaActiva] = useState<PestanaDeActividad>('participantes');
@@ -74,6 +83,18 @@ export function PantallaDetalleActividad({
   function verTodosLosParticipantes() {
     setPestanaActiva('participantes');
     listaRef.current?.scrollToOffset({ offset: posicionDePestanas.current, animated: true });
+  }
+
+  function abrirValoracion(participante: ParticipanteAValorar) {
+    setAvisoDeValoracion(null);
+    setValorando(participante);
+  }
+
+  function alGuardarValoracion(valoracion: MiValoracion) {
+    if (valorando === null) return;
+    misValoraciones.registrar(valorando.id, valoracion);
+    setValorando(null);
+    setAvisoDeValoracion(MENSAJES_VALORACION.guardada); // FP paso 10
   }
 
   // CU09 E2: se informa que la actividad no está disponible y se vuelve al inicio
@@ -97,8 +118,9 @@ export function PantallaDetalleActividad({
             <FilaDeParticipante
               participante={item.participante}
               puedeRemover={puedeRemover}
-              puedeValorar={puedeValorar}
+              valoraciones={valoraciones}
               usuarioActualId={usuarioActualId}
+              alValorar={abrirValoracion}
             />
           ) : (
             <FilaDeInvitado nombre={item.nombre} invitadoPor={item.invitadoPor} />
@@ -119,6 +141,9 @@ export function PantallaDetalleActividad({
                 posicionDePestanas.current = y;
               }}
             />
+            {valoraciones && pestanaActiva === 'participantes' ? (
+              <ResumenDeValoraciones valoraciones={valoraciones} aviso={avisoDeValoracion} />
+            ) : null}
           </>
         }
         ListFooterComponent={
@@ -130,6 +155,16 @@ export function PantallaDetalleActividad({
 
       {actividad ? <BarraDeAccionPrincipal actividad={actividad} /> : null}
       {actividad ? <MenuDeOpciones actividad={actividad} visible={menuAbierto} alCerrar={() => setMenuAbierto(false)} /> : null}
+      {valorando ? (
+        <FormularioDeValoracion
+          key={valorando.id}
+          actividadId={actividadId}
+          participante={valorando}
+          valoracionActual={misValoraciones.porUsuario.get(valorando.id) ?? null}
+          alGuardar={alGuardarValoracion}
+          alCerrar={() => setValorando(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -628,18 +663,27 @@ function PieDelDetalle({ actividad, pestanaActiva, participantes }: PropsPie) {
   );
 }
 
+interface ParticipanteAValorar {
+  id: string;
+  nombre: string;
+}
+
 interface PropsFila {
   participante: ParticipanteDeActividad;
   puedeRemover: boolean;
-  puedeValorar: boolean;
+  /** CU21: valoraciones del usuario, o null si la API no ofrece valorar (CU09 RN5). */
+  valoraciones: EstadoMisValoraciones | null;
   usuarioActualId: string | null;
+  alValorar: (participante: ParticipanteAValorar) => void;
 }
 
-function FilaDeParticipante({ participante, puedeRemover, puedeValorar, usuarioActualId }: PropsFila) {
+function FilaDeParticipante({ participante, puedeRemover, valoraciones, usuarioActualId, alValorar }: PropsFila) {
   const { usuario } = participante;
   const esElUsuarioActual = usuario !== null && usuario.id === usuarioActualId;
-  // CU21: se valora a los demás participantes registrados, no a uno mismo ni a una cuenta cerrada
-  const mostrarEstrellas = puedeValorar && usuario !== null && !esElUsuarioActual;
+  // CU21 RN1 y RN5: se valora a los demás participantes registrados, no a uno mismo ni a una cuenta cerrada.
+  // Las estrellas aparecen cuando llegaron las valoraciones, así muestran si ya lo valoraste y con cuánto.
+  const puedeValorarlo =
+    valoraciones !== null && usuario !== null && !esElUsuarioActual && valoraciones.porUsuario.has(usuario.id);
   return (
     <View style={estilos.fila}>
       <View style={estilos.persona}>
@@ -662,7 +706,13 @@ function FilaDeParticipante({ participante, puedeRemover, puedeValorar, usuarioA
         ) : (
           <Text style={[estilos.textoSuave, estilos.usuario]}>Usuario eliminado</Text>
         )}
-        {mostrarEstrellas ? <EstrellasDeValoracion nombre={usuario.nombre} /> : null}
+        {puedeValorarlo ? (
+          <EstrellasDeValoracion
+            nombre={usuario.nombre}
+            valoracion={valoraciones.porUsuario.get(usuario.id) ?? null}
+            alPresionar={() => alValorar({ id: usuario.id, nombre: usuario.nombre })}
+          />
+        ) : null}
       </View>
       {/* CU09 A1 paso 3. Pendiente: CU31 – Remover a un participante */}
       {puedeRemover && !participante.esOrganizador ? (
