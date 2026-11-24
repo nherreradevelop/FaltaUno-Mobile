@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { obtenerDetalleDeActividad, obtenerParticipantes } from '../api/actividades';
@@ -28,6 +28,8 @@ import {
   type ErrorDeActividad,
   type PestanaDeActividad,
 } from '../comun/mensajesActividad';
+import { incorporaciones } from '../comun/eventosActividad';
+import { puntosDePartidaEnMapa } from '../comun/puntosDePartida';
 import { ETIQUETA_ESTADO } from '../comun/mensajesPerfil';
 import { colores, fuentes, OPACIDAD_DESHABILITADO } from '../comun/tema';
 import { MENSAJES_VALORACION } from '../comun/valoraciones';
@@ -46,6 +48,9 @@ export interface ActividadRecienCreada {
 
 type EstadoPantalla = { tipo: 'cargando' } | { tipo: 'listo'; actividad: DetalleActividad } | ErrorDeActividad;
 
+/** CU11 FP paso 10, E1, E2 y E3: resultado de intentar unirse, que se muestra arriba del detalle. */
+type AvisoDeIncorporacion = { tipo: 'exito' | 'error'; mensaje: string } | null;
+
 /**
  * M – CU09 Detalle de actividad. La usa app/(app)/actividades/[id]/index.tsx.
  * Sin sesión, app/_layout.tsx lleva al login y después vuelve acá (A3).
@@ -57,7 +62,7 @@ export function PantallaDetalleActividad({
   actividadId: string;
   actividadCreada?: ActividadRecienCreada | null;
 }) {
-  const { estado, reintentar } = useDetalle(actividadId);
+  const { estado, reintentar, recargar } = useDetalle(actividadId);
   const actividad = estado.tipo === 'listo' ? estado.actividad : null;
   // CU09 A1: una sola llamada para los avatares de la cabecera y la pestaña Participantes
   const participantes = useParticipantes(actividadId, actividad?.opciones.includes('verParticipantes') ?? false);
@@ -73,6 +78,20 @@ export function PantallaDetalleActividad({
   const usuarioActualId = sesion?.usuario.id ?? null;
   const [pestanaActiva, setPestanaActiva] = useState<PestanaDeActividad>('participantes');
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [aviso, setAviso] = useState<AvisoDeIncorporacion>(null);
+  const recargarParticipantes = participantes.recargar;
+
+  // CU11 FP paso 10: al volver del formulario se avisa el resultado y se recarga sin mostrar la carga inicial,
+  // así se ve "Ya estás anotado", los cupos (FP paso 8) y la lista de participantes actualizados
+  useEffect(() => {
+    const desuscribir = incorporaciones.suscribir((incorporacion) => {
+      if (incorporacion.actividadId !== actividadId) return;
+      setAviso({ tipo: incorporacion.tipo === 'unido' ? 'exito' : 'error', mensaje: incorporacion.mensaje });
+      recargar();
+      recargarParticipantes();
+    });
+    return desuscribir;
+  }, [actividadId, recargar, recargarParticipantes]);
   // La lista solo se muestra en la pestaña "Participantes"; lo cargado se conserva al cambiar de pestaña.
   // CU09 A1: los invitados externos tienen fila propia, debajo de quien los trae
   const filasVisibles = pestanaActiva === 'participantes' ? filasDeParticipantes(participantes.lista) : [];
@@ -130,6 +149,7 @@ export function PantallaDetalleActividad({
         ListHeaderComponent={
           <>
             {actividadCreada && <AvisoDeActividadCreada actividadCreada={actividadCreada} />}
+            {aviso && <AvisoDeIncorporacion aviso={aviso} />}
             <EncabezadoDelDetalle
               estado={estado}
               reintentar={reintentar}
@@ -213,19 +233,44 @@ function BarraSuperior({ actividad, alAbrirMenu }: { actividad: DetalleActividad
   );
 }
 
-/** La acción principal fija abajo: unirse, si no participa y hay lugar (CU09 FP paso 4). */
+/** La acción principal fija abajo: unirse, si no participa y hay lugar (CU09 FP paso 4, CU11 FP paso 3). */
 function BarraDeAccionPrincipal({ actividad }: { actividad: DetalleActividad }) {
   const principal = accionPrincipal(actividad.opciones);
   if (principal === null) {
     return null;
   }
+  function abrirFormularioParaUnirse() {
+    router.push({
+      pathname: '/actividades/[id]/unirse',
+      params: {
+        id: actividad.id,
+        nombre: actividad.nombre,
+        cuposLibres: String(actividad.cupoMaximo - actividad.cuposOcupados),
+        destinoLat: String(actividad.destino.lat),
+        destinoLng: String(actividad.destino.lng),
+      },
+    });
+  }
   return (
     // Sin margen seguro inferior: queda arriba de la barra de navegación, que ya lo tiene (CU39)
     <View style={estilos.barraInferior}>
-      {/* Pendiente: CU11 – Unirse a una actividad */}
-      <Boton texto={principal.etiqueta} alPresionar={() => {}} deshabilitado />
-      {/* Que un botón apagado no parezca roto: se avisa a la vista */}
-      <Text style={estilos.proximamente}>Disponible próximamente</Text>
+      <Boton texto={principal.etiqueta} alPresionar={abrirFormularioParaUnirse} />
+    </View>
+  );
+}
+
+/** CU11 FP paso 10 (éxito) o E1/E2/E3 (ya no es posible unirse). */
+function AvisoDeIncorporacion({ aviso }: { aviso: NonNullable<AvisoDeIncorporacion> }) {
+  if (aviso.tipo === 'exito') {
+    return (
+      <Text accessibilityRole="alert" style={[estilos.avisoInfo, estilos.avisoDeIncorporacion]}>
+        {aviso.mensaje}
+      </Text>
+    );
+  }
+  return (
+    <View accessibilityRole="alert" style={[estilos.aviso, estilos.avisoDeIncorporacion]}>
+      <Text style={estilos.textoAviso}>{aviso.mensaje}</Text>
     </View>
   );
 }
@@ -284,7 +329,14 @@ function useDetalle(actividadId: string) {
     };
   }, [actividadId, intento]);
 
-  return { estado, reintentar: () => setIntento((anterior) => anterior + 1) };
+  /** CU11: vuelve a pedir el detalle sin pasar por "cargando", para que la pantalla no salte. */
+  const recargar = useCallback(() => {
+    obtenerDetalleDeActividad(actividadId)
+      .then((actividad) => setEstado({ tipo: 'listo', actividad }))
+      .catch((error: unknown) => setEstado(clasificarErrorDeActividad(error)));
+  }, [actividadId]);
+
+  return { estado, reintentar: () => setIntento((anterior) => anterior + 1), recargar };
 }
 
 interface EstadoParticipantes {
@@ -294,6 +346,8 @@ interface EstadoParticipantes {
   hayFalla: boolean;
   verMas: () => void;
   reintentar: () => void;
+  /** CU11: vuelve a empezar desde la primera página (después de unirse cambia la lista). */
+  recargar: () => void;
 }
 
 /** CU09 A1: participantes de a 20; "Ver más" agrega la página siguiente. */
@@ -305,6 +359,11 @@ function useParticipantes(actividadId: string, habilitado: boolean): EstadoParti
   const [hayMas, setHayMas] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [hayFalla, setHayFalla] = useState(false);
+
+  const recargar = useCallback(() => {
+    setPaginaPedida(1);
+    setIntento((anterior) => anterior + 1);
+  }, []);
 
   useEffect(() => {
     if (!habilitado) {
@@ -342,6 +401,7 @@ function useParticipantes(actividadId: string, habilitado: boolean): EstadoParti
     verMas: () => setPaginaPedida(paginaCargada + 1),
     // RNF-10: vuelve a pedir la página que falló; las ya cargadas no se piden de nuevo ni se duplican
     reintentar: () => setIntento((anterior) => anterior + 1),
+    recargar,
   };
 }
 
@@ -395,6 +455,8 @@ interface PropsDetalle {
 function DetalleDeLaActividad(props: PropsDetalle) {
   const { actividad, participantes, alVerTodos, alUbicarPestanas } = props;
   const etiquetaRol = ETIQUETA_ROL[actividad.miRol];
+  // Memo: el mapa vuelve a encuadrar solo cuando cambia la lista, no en cada render
+  const puntosDePartida = useMemo(() => puntosDePartidaEnMapa(participantes.lista), [participantes.lista]);
 
   return (
     <View style={estilos.encabezado}>
@@ -425,7 +487,9 @@ function DetalleDeLaActividad(props: PropsDetalle) {
       <Pronostico actividad={actividad} />
 
       {/* CU09 A2: salida, destino y mapa juntos */}
-      {actividad.opciones.includes('verMapa') ? <MapaDelRecorrido origen={actividad.origen} destino={actividad.destino} /> : null}
+      {actividad.opciones.includes('verMapa') ? (
+        <MapaDelRecorrido origen={actividad.origen} destino={actividad.destino} puntosDePartida={puntosDePartida} />
+      ) : null}
 
       {/* Participantes (A1), Chat y Gastos; la lista de participantes sigue debajo de este encabezado */}
       <View onLayout={(evento) => alUbicarPestanas(evento.nativeEvent.layout.y)}>
@@ -701,6 +765,12 @@ function FilaDeParticipante({ participante, puedeRemover, valoraciones, usuarioA
                 {esElUsuarioActual ? <Text style={estilos.vos}> (vos)</Text> : null}
               </Text>
               {participante.esOrganizador ? <Text style={estilos.rolParticipante}>Organizador</Text> : null}
+              {/* CU11 paso 5: solo llega si quien mira forma parte de la actividad */}
+              {participante.puntoPartida ? (
+                <Text style={estilos.puntoPartidaParticipante} numberOfLines={1}>
+                  Sale desde {participante.puntoPartida.direccion}
+                </Text>
+              ) : null}
             </View>
           </Pressable>
         ) : (
@@ -854,6 +924,7 @@ const estilos = StyleSheet.create({
   usuario: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   textoParticipante: { flex: 1, minWidth: 0 },
   rolParticipante: { fontFamily: fuentes.texto, fontWeight: '600', fontSize: 13, color: colores.primarioOscuro },
+  puntoPartidaParticipante: { fontFamily: fuentes.texto, fontSize: 13, color: colores.textoSuave },
   nombreParticipante: { fontFamily: fuentes.texto, fontWeight: '700', fontSize: 15, color: colores.texto },
   vos: { fontWeight: '400', color: colores.textoSuave },
   avatarInvitado: {
@@ -888,6 +959,7 @@ const estilos = StyleSheet.create({
   aviso: { backgroundColor: colores.errorFondo, borderRadius: 14, padding: 14, overflow: 'hidden' },
   avisoConBoton: { gap: 12 },
   avisosDeCreacion: { gap: 12, marginBottom: 16 },
+  avisoDeIncorporacion: { marginBottom: 16 },
   textoAviso: { fontFamily: fuentes.texto, fontSize: 14, lineHeight: 20, color: colores.error },
   avisoInfo: {
     backgroundColor: colores.primarioClaro,

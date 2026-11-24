@@ -178,6 +178,8 @@ export interface ParticipanteDeActividad {
   usuario: { id: string; nombre: string; fotoUrl: string | null } | null;
   esOrganizador: boolean;
   invitadosExternos: string[];
+  /** CU11 paso 5: null si no lo indicó o si quien consulta no forma parte de la actividad (lo decide la API). */
+  puntoPartida: Ubicacion | null;
 }
 
 export interface PaginaDeParticipantes {

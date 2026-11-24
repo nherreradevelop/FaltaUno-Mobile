@@ -192,3 +192,30 @@ export function detalleUbicacion(placeId: string): Promise<UbicacionResuelta> {
 export function crearActividad(datos: DatosCrearActividad, clave: string): Promise<ActividadCreada> {
   return pedir('/api/actividades', { metodo: 'POST', cuerpo: datos, claveIdempotencia: clave });
 }
+
+// --- CU11 – Unirse a una actividad ---
+
+/** CU11 FP pasos 5 y 6. El punto de partida es opcional: un lugar (placeId) o un pin (coordenadas), no ambos. */
+export interface DatosUnirseActividad {
+  tieneVehiculo: boolean;
+  lugaresVehiculo: number | null;
+  puntoPartidaPlaceId: string | null;
+  puntoPartidaCoordenadas?: Coordenadas;
+  invitados: string[];
+}
+
+/** CU11 FP paso 8: cupos de la actividad después de unirse. */
+export interface Incorporacion {
+  actividadId: string;
+  cupoMaximo: number;
+  cuposOcupados: number;
+  cuposLibres: number;
+}
+
+/** CU11 FP paso 7: el usuario de la sesión se une a la actividad. */
+export function unirseAActividad(actividadId: string, datos: DatosUnirseActividad): Promise<Incorporacion> {
+  return pedir<Incorporacion>(`/api/actividades/${encodeURIComponent(actividadId)}/participantes`, {
+    metodo: 'POST',
+    cuerpo: datos,
+  });
+}
