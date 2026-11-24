@@ -114,7 +114,7 @@ export interface DefinicionDePestana {
 export const PESTANAS: DefinicionDePestana[] = [
   { pestana: 'participantes', etiqueta: 'Participantes', opcion: 'verParticipantes', casoDeUsoPendiente: null }, // A1
   { pestana: 'chat', etiqueta: 'Chat', opcion: 'verChat', casoDeUsoPendiente: 'CU16' }, // Pendiente: CU16
-  { pestana: 'gastos', etiqueta: 'Gastos', opcion: 'verGastos', casoDeUsoPendiente: 'CU34' }, // Pendiente: CU34
+  { pestana: 'gastos', etiqueta: 'Gastos', opcion: 'verGastos', casoDeUsoPendiente: null }, // CU23–CU25; Pendiente: resto de CU34
 ];
 
 /** Las pestañas que corresponden según las opciones que ofreció la API. */

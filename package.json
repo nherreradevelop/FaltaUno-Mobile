@@ -17,7 +17,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --experimental-transform-types --test test/formularioActividad.test.mjs test/filtrosDeSesion.test.mjs test/formato.test.mjs test/detalleActividad.test.mjs test/notificaciones.test.mjs test/secciones.test.mjs"
+    "test": "node --experimental-transform-types --test test/actualizacionesFinancieras.test.mjs test/pagos.test.mjs test/gastos.test.mjs test/formularioActividad.test.mjs test/filtrosDeSesion.test.mjs test/formato.test.mjs test/detalleActividad.test.mjs test/notificaciones.test.mjs test/secciones.test.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

@@ -61,6 +61,15 @@ Docker corre solo el servidor de Expo (Metro). El development build se sigue ins
 
 Para usar las teclas de Expo (por ejemplo `r` para recargar): `docker attach faltauno-metro` (salir sin cortarlo: `Ctrl+P` y después `Ctrl+Q`).
 
+## Gastos de actividades — CU23 a CU25
+
+Desde la pestaña Gastos de una actividad, “Abrir gastos de la actividad” lleva a la lista,
+el detalle y el formulario. La selección de pagador, participantes e invitados usa listas
+virtualizadas y muestra el reparto exacto antes de guardar. Solo el autor puede editar o eliminar.
+Una confirmación perdida conserva los datos y permite verificar el resultado antes de reenviar.
+Requiere las migraciones 005, 006 y 007 de FaltaUno-API. Los cambios avisan al pagador y reparto por CU40;
+al editar se avisa solo a los nuevos involucrados. CU26 permite registrar pagos desde balances; cada pago solo lo ven sus dos partes y solo el autor puede editarlo o eliminarlo. El historial vence a los seis meses desde que se archiva la actividad.
+
 ## Dashboard y filtros
 
 El dashboard muestra primero las actividades que gestionás, luego las que integrás y finalmente «Actividades que podrían interesarte». Cada sección tiene su propia paginación; las actividades propias siguen visibles aunque estén completas.

@@ -1,3 +1,4 @@
+import { conectarActualizacionesFinancieras, refrescarFinanzasDelUsuario } from '../comun/actualizacionesFinancieras';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { contarNotificacionesNoLeidas, type Notificacion } from '../api/notificaciones';
@@ -26,6 +27,7 @@ const NotificacionesContexto = createContext<ValorNotificaciones | null>(null);
 export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
   const { sesion } = useSesion();
   const token = sesion?.token ?? null;
+  const usuarioId = sesion?.usuario.id;
   const [noLeidas, setNoLeidas] = useState(0);
   const nuevas = useMemo(
     () => new Observable<Notificacion>((error) => console.error('Falló un observador de notificaciones', error)),
@@ -35,7 +37,7 @@ export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
   const [pedidoDeRefresco, setPedidoDeRefresco] = useState(0);
 
   useEffect(() => {
-    if (token === null) return;
+    if (token === null || !usuarioId) return;
     let vigente = true;
 
     // ER1 y ER3: si falla, se conserva el último valor y se vuelve a pedir más tarde
@@ -49,6 +51,7 @@ export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
 
     refrescarNoLeidas();
     const socket = conectarTiempoReal(token);
+    const desconectarFinanzas = conectarActualizacionesFinancieras(socket, usuarioId);
     socket.on(EVENTOS_EN_VIVO.nueva, (aviso: AvisoDeNotificacionNueva) => {
       setNoLeidas(aviso.noLeidas);
       nuevas.notificar(aviso.notificacion);
@@ -58,16 +61,20 @@ export function ProveedorNotificaciones({ children }: { children: ReactNode }) {
     socket.io.on('reconnect', refrescarNoLeidas);
     // ER3: en segundo plano el sistema puede cortar la conexión; al volver a primer plano se consulta de nuevo
     const suscripcionAppState = AppState.addEventListener('change', (estado) => {
-      if (estado === 'active') refrescarNoLeidas();
+      if (estado === 'active') {
+        refrescarNoLeidas();
+        refrescarFinanzasDelUsuario(usuarioId);
+      }
     });
 
     return () => {
       vigente = false;
       suscripcionAppState.remove();
       socket.io.off('reconnect', refrescarNoLeidas);
+      desconectarFinanzas();
       socket.disconnect();
     };
-  }, [token, nuevas]);
+  }, [token, usuarioId, nuevas]);
 
   // Pedido puntual del contador (al abrir la pantalla), sin reabrir la conexión en tiempo real
   useEffect(() => {

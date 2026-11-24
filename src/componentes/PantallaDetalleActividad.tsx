@@ -607,6 +607,16 @@ interface PropsPie {
 
 /** Debajo de la lista: en "Participantes", la carga y "Ver más" (A1); en Chat y Gastos, su caso de uso pendiente. */
 function PieDelDetalle({ actividad, pestanaActiva, participantes }: PropsPie) {
+  if (pestanaActiva === 'gastos' && actividad.opciones.includes('verGastos')) {
+    return (
+      <View style={estilos.pie}>
+        <Boton
+          texto="Abrir gastos de la actividad"
+          alPresionar={() => router.push({ pathname: '/actividades/[id]/gastos', params: { id: actividad.id } })}
+        />
+      </View>
+    );
+  }
   const definicion = pestanasDisponibles(actividad.opciones).find(({ pestana }) => pestana === pestanaActiva);
   if (definicion === undefined) {
     return null;
