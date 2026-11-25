@@ -27,6 +27,21 @@ export function formularioDeGasto(gasto: Gasto | null): FormularioGasto {
     : { concepto: '', monto: '', pagadorId: '', participantes: [] };
 }
 
+/**
+ * Gasto nuevo con valores sugeridos, que el usuario puede cambiar antes de registrar:
+ * pagó quien lo está cargando y se reparte entre todas las personas de la actividad.
+ */
+export function formularioDeGastoNuevo(personas: PersonaGasto[], participacionActualId: string): FormularioGasto {
+  // La persona del usuario actual es su participación, no la de un invitado suyo
+  const yo = personas.find((persona) => persona.participacionId === participacionActualId && persona.invitadoId === null);
+  return {
+    concepto: '',
+    monto: '',
+    pagadorId: yo?.id ?? '',
+    participantes: personas.map((persona) => persona.id),
+  };
+}
+
 export function validarFormularioGasto(formulario: FormularioGasto): Record<string, string> {
   const errores: Record<string, string> = {};
   if (!formulario.concepto.trim() || formulario.concepto.trim().length > 150)

@@ -1,312 +1,502 @@
-import { obtenerGasto } from '../api/gastos';
-import { ErrorApi } from '../api/cliente';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Balance, Gasto, ParteGasto } from '../api/gastos';
-import { nombrePersona } from '../comun/gastos';
+import { ErrorApi } from '../api/cliente';
+import { obtenerGasto, type Balance, type Gasto, type ParteGasto, type PersonaGasto } from '../api/gastos';
 import { formatearMonto } from '../comun/formato';
+import { nombrePersona } from '../comun/gastos';
 import { colores, fuentes } from '../comun/tema';
 import { useGastos } from '../hooks/useGastos';
 import { Boton } from './Boton';
 import { FormularioGasto } from './FormularioGasto';
 
-type Fila =
-  | { tipo: 'gasto'; gasto: Gasto }
-  | { tipo: 'parte'; parte: ParteGasto }
-  | { tipo: 'balance'; balance: Balance }
-  | { tipo: 'tituloBalance' };
+/*
+ * CU23–CU25 dentro de la pestaña "Gastos" del detalle de la actividad (CU09).
+ * La lista de gastos y balances son filas de la FlatList del detalle (una sola lista virtualizada, sin anidar);
+ * el detalle de un gasto, el formulario y la confirmación de eliminar se abren en una hoja modal.
+ * CU26 (pagos) se abre desde cada balance. Pendiente: resto de CU34.
+ */
 
-function claveFila(fila: Fila): string {
-  if (fila.tipo === 'gasto') return fila.gasto.id;
-  if (fila.tipo === 'parte') return fila.parte.personaId;
-  if (fila.tipo === 'balance') return `${fila.balance.deudorId}:${fila.balance.acreedorId}`;
-  return 'balances';
+/** Una fila de la pestaña Gastos. La clave va en la fila para que la FlatList del detalle use un único keyExtractor. */
+export type FilaDeGastos =
+  | { tipo: 'gasto'; clave: string; gasto: Gasto }
+  | { tipo: 'tituloBalances'; clave: string }
+  | { tipo: 'balance'; clave: string; balance: Balance };
+
+export type VistaDeGastos = ReturnType<typeof useVistaDeGastos>;
+
+const CANTIDAD_DE_ESQUELETOS = 3;
+
+/**
+ * Estado de la pestaña Gastos. Con habilitado = false no pide nada: los gastos se cargan la primera vez que se abre
+ * la pestaña y se conservan al cambiar a otra.
+ */
+export function useVistaDeGastos(actividadId: string, habilitado: boolean) {
+  const modelo = useGastos(actividadId, habilitado);
+  const [seleccionado, setSeleccionado] = useState<Gasto | null>(modelo.pendiente?.gasto ?? null);
+  // Una intención pendiente de registrar o editar vuelve a abrir su formulario para verificarla o reenviarla
+  const [formularioAbierto, setFormularioAbierto] = useState(!!modelo.pendiente && modelo.pendiente.accion !== 'eliminar');
+  const [confirmandoEliminacion, setConfirmandoEliminacion] = useState(false);
+  const bloqueado = modelo.ocupado || modelo.pendiente !== null;
+
+  useRecargaAlVolver(modelo.recargar, habilitado);
+  useGastoSeleccionadoAlDia(actividadId, seleccionado?.id, setSeleccionado, {
+    pausado: formularioAbierto || confirmandoEliminacion || !!modelo.pendiente || modelo.ocupado,
+    gastos: modelo.gastos,
+  });
+
+  const filas = filasDeGastos(modelo.gastos, modelo.balances, modelo.opciones !== null);
+
+  function abrirDetalle(gasto: Gasto) {
+    // Se muestra enseguida lo que ya está en la lista; useGastoSeleccionadoAlDia trae la versión actual (una sola llamada)
+    setSeleccionado(gasto);
+  }
+
+  function cerrarDetalle() {
+    if (bloqueado) return;
+    setConfirmandoEliminacion(false);
+    setSeleccionado(null);
+  }
+
+  /** Al terminar bien una operación se cierra todo y el aviso queda visible en la pestaña. */
+  function terminar(ok: boolean) {
+    if (!ok) return;
+    setFormularioAbierto(false);
+    setConfirmandoEliminacion(false);
+    setSeleccionado(null);
+  }
+
+  async function cargarVersionActual() {
+    if (!seleccionado) return;
+    const actual = await modelo.revisar(seleccionado.id);
+    setSeleccionado(actual);
+    if (!actual) setFormularioAbierto(false);
+  }
+
+  function eliminarSeleccionado() {
+    setConfirmandoEliminacion(false);
+    if (seleccionado) void modelo.enviar('eliminar', null, seleccionado).then(terminar);
+  }
+
+  const esAutorDelSeleccionado = seleccionado !== null && seleccionado.registradoPorId === modelo.opciones?.participacionActualId;
+  const puedeEditarSeleccionado = esAutorDelSeleccionado && (modelo.opciones?.puedeEscribir ?? false);
+
+  return {
+    actividadId,
+    modelo,
+    filas,
+    bloqueado,
+    seleccionado,
+    puedeEditarSeleccionado,
+    formularioAbierto,
+    confirmandoEliminacion,
+    abrirDetalle,
+    cerrarDetalle,
+    abrirFormulario: () => setFormularioAbierto(true),
+    cerrarFormulario: () => setFormularioAbierto(false),
+    pedirConfirmacionDeEliminar: () => setConfirmandoEliminacion(true),
+    cancelarEliminacion: () => setConfirmandoEliminacion(false),
+    eliminarSeleccionado,
+    cargarVersionActual,
+    terminar,
+  };
 }
 
-/** CU23–CU25, solo gastos. CU26 se abre desde cada balance; pendiente el resto de CU34. */
-export function GastosDeActividad({ actividadId }: { actividadId: string }) {
-  const modelo = useGastos(actividadId);
+function filasDeGastos(gastos: Gasto[], balances: Balance[], cargado: boolean): FilaDeGastos[] {
+  if (!cargado) return [];
+  const filasGasto = gastos.map((gasto): FilaDeGastos => ({ tipo: 'gasto', clave: `gasto-${gasto.id}`, gasto }));
+  const filasBalance = balances.map((balance): FilaDeGastos => ({
+    tipo: 'balance',
+    clave: `balance-${balance.deudorId}:${balance.acreedorId}`,
+    balance,
+  }));
+  return [...filasGasto, { tipo: 'tituloBalances', clave: 'titulo-balances' }, ...filasBalance];
+}
+
+/** Al volver de Pagos (CU26) los balances pueden haber cambiado: se recargan, salvo la primera vez que se enfoca. */
+function useRecargaAlVolver(recargar: () => Promise<void>, habilitado: boolean) {
   const primerFoco = useRef(true);
-  const recargarGastos = modelo.recargar;
   useFocusEffect(
     useCallback(() => {
-      if (primerFoco.current) primerFoco.current = false;
-      else void recargarGastos();
-    }, [recargarGastos]),
+      if (primerFoco.current) {
+        primerFoco.current = false;
+        return;
+      }
+      if (habilitado) void recargar();
+    }, [recargar, habilitado]),
   );
-  const [seleccionado, setSeleccionado] = useState<Gasto | null>(modelo.pendiente?.gasto ?? null);
-  const [formulario, setFormulario] = useState(!!modelo.pendiente && modelo.pendiente.accion !== 'eliminar');
-  const [confirmar, setConfirmar] = useState(false);
-  const personas = modelo.opciones?.personas ?? [];
-  const bloqueado = modelo.ocupado || modelo.pendiente !== null;
-  const detalleId = seleccionado?.id;
+}
+
+/**
+ * Mientras el detalle está abierto, sigue los cambios de la lista (otro participante editó o eliminó el gasto).
+ * Se pausa con un formulario, una confirmación o una operación en curso: esas conservan su versión para detectar conflictos.
+ */
+function useGastoSeleccionadoAlDia(
+  actividadId: string,
+  gastoId: string | undefined,
+  setSeleccionado: (gasto: Gasto | null) => void,
+  { pausado, gastos }: { pausado: boolean; gastos: Gasto[] },
+) {
   useEffect(() => {
-    // La lectura sigue los cambios; un borrador o una confirmación conserva su versión para revisar conflictos.
-    if (!detalleId || formulario || confirmar || modelo.pendiente || modelo.ocupado) return;
+    if (!gastoId || pausado) return;
     let vigente = true;
-    obtenerGasto(actividadId, detalleId)
+    obtenerGasto(actividadId, gastoId)
       .then((actual) => {
         if (vigente) setSeleccionado(actual);
       })
       .catch((error: unknown) => {
-        if (vigente && error instanceof ErrorApi && [404, 410].includes(error.estado)) setSeleccionado(null);
+        const yaNoExiste = error instanceof ErrorApi && [404, 410].includes(error.estado);
+        if (vigente && yaNoExiste) setSeleccionado(null);
       });
     return () => {
       vigente = false;
     };
-  }, [actividadId, detalleId, formulario, confirmar, modelo.pendiente, modelo.ocupado, modelo.gastos]);
+  }, [actividadId, gastoId, pausado, gastos, setSeleccionado]);
+}
 
-  const puedeEditar =
-    seleccionado && modelo.opciones?.puedeEscribir && seleccionado.registradoPorId === modelo.opciones.participacionActualId;
-  const filas: Fila[] = seleccionado
-    ? seleccionado.partes.map((parte) => ({ tipo: 'parte', parte }))
-    : [
-        ...modelo.gastos.map((gasto): Fila => ({ tipo: 'gasto', gasto })),
-        { tipo: 'tituloBalance' },
-        ...modelo.balances.map((balance): Fila => ({ tipo: 'balance', balance })),
-      ];
-  function terminar(ok: boolean) {
-    if (ok) {
-      setFormulario(false);
-      setSeleccionado(null);
-    }
-  }
-  async function revisar() {
-    if (!seleccionado) return;
-    const actual = await modelo.revisar(seleccionado.id);
-    setSeleccionado(actual);
-    if (!actual) setFormulario(false);
-  }
+/** Arriba de la lista: avisos, la acción principal (Registrar gasto), el acceso a pagos y los estados de carga y vacío. */
+export function EncabezadoDeGastos({ vista }: { vista: VistaDeGastos }) {
+  const { modelo, bloqueado, actividadId } = vista;
+  // Antes de la primera respuesta (o mientras llega) se muestran esqueletos con la forma de las tarjetas
+  const cargandoPorPrimeraVez = !modelo.opciones && !modelo.error;
+  const sinGastos = modelo.opciones !== null && modelo.gastos.length === 0;
+
   return (
-    <SafeAreaView style={s.pantalla} edges={['top', 'left', 'right', 'bottom']}>
-      <FlatList
-        data={modelo.opciones ? filas : []}
-        contentContainerStyle={s.contenido}
-        keyExtractor={claveFila}
-        ListHeaderComponent={
-          <View style={s.cabecera}>
+    <View style={s.encabezado}>
+      {/* Con el detalle abierto, los avisos se muestran en la hoja */}
+      {!vista.seleccionado ? <AvisosDeGastos vista={vista} /> : null}
+      {!!modelo.opciones?.motivo && <Text style={s.aviso}>{modelo.opciones.motivo}</Text>}
+
+      {modelo.opciones?.puedeEscribir ? (
+        <Boton texto="Registrar gasto" deshabilitado={bloqueado} alPresionar={vista.abrirFormulario} />
+      ) : null}
+      {modelo.opciones ? (
+        <Pressable
+          accessibilityRole="link"
+          disabled={bloqueado}
+          hitSlop={8}
+          style={s.enlace}
+          onPress={() => router.push({ pathname: '/(app)/actividades/[id]/pagos', params: { id: actividadId } })}
+        >
+          <Text style={s.textoEnlace}>Ver mis pagos</Text>
+        </Pressable>
+      ) : null}
+
+      {cargandoPorPrimeraVez ? <EsqueletosDeGastos /> : null}
+      {sinGastos ? <Text style={s.suave}>Todavía no hay gastos registrados en esta actividad.</Text> : null}
+    </View>
+  );
+}
+
+function EsqueletosDeGastos() {
+  return (
+    <View accessibilityLabel="Cargando gastos" style={s.esqueletos}>
+      {Array.from({ length: CANTIDAD_DE_ESQUELETOS }, (_, indice) => (
+        <View key={indice} style={s.esqueleto} />
+      ))}
+    </View>
+  );
+}
+
+/** Resultado de la última operación, errores con su salida y la verificación de una operación sin confirmar (RNF-10). */
+function AvisosDeGastos({ vista }: { vista: VistaDeGastos }) {
+  const { modelo } = vista;
+  return (
+    <>
+      {!!modelo.aviso && (
+        <Text accessibilityLiveRegion="polite" style={s.aviso}>
+          {modelo.aviso}
+        </Text>
+      )}
+      {!!modelo.error && (
+        <View style={s.panelError}>
+          <Text accessibilityRole="alert" style={s.error}>
+            {modelo.error}
+          </Text>
+          {!modelo.pendiente && !vista.seleccionado ? (
             <Boton
-              texto={seleccionado ? 'Volver a gastos' : 'Volver a la actividad'}
+              texto={modelo.opciones ? 'Actualizar gastos y balances' : 'Reintentar'}
               variante="secundario"
-              deshabilitado={bloqueado}
-              alPresionar={() => (seleccionado ? setSeleccionado(null) : router.back())}
+              cargando={modelo.cargando}
+              deshabilitado={modelo.ocupado}
+              alPresionar={() => void modelo.recargar()}
             />
-            <Text style={s.titulo} accessibilityRole="header">
-              {seleccionado ? seleccionado.concepto : 'Gastos de la actividad'}
-            </Text>
-            {!seleccionado && (
-              <Boton
-                texto="Ver mis pagos"
-                variante="secundario"
-                deshabilitado={bloqueado}
-                alPresionar={() => router.push({ pathname: '/(app)/actividades/[id]/pagos', params: { id: actividadId } })}
-              />
-            )}
-            {seleccionado && (
-              <>
-                <Text style={s.monto}>{formatearMonto(seleccionado.montoCentesimos)}</Text>
-                <Text style={s.texto}>Pagó {nombrePersona(personas, seleccionado.pagadorId)}</Text>
-                <Text style={s.subtitulo}>Reparto</Text>
-              </>
-            )}
-            {!!modelo.aviso && (
-              <Text accessibilityLiveRegion="polite" style={s.aviso}>
-                {modelo.aviso}
-              </Text>
-            )}
-            {!!modelo.error && (
-              <View style={s.panelError}>
-                <Text accessibilityRole="alert" style={s.error}>
-                  {modelo.error}
-                </Text>
-                {!modelo.pendiente && (
-                  <Boton
-                    texto="Actualizar lista y balances"
-                    variante="secundario"
-                    deshabilitado={modelo.ocupado}
-                    alPresionar={() => void modelo.recargar()}
-                  />
-                )}
-              </View>
-            )}
-            {modelo.pendiente && (
-              <View style={s.panel}>
-                <Text style={s.texto}>Operación pendiente de verificación.</Text>
-                <Boton
-                  texto="Verificar resultado"
-                  variante="secundario"
-                  deshabilitado={modelo.ocupado}
-                  alPresionar={() => void modelo.verificar().then(terminar)}
-                />
-                {modelo.puedeReintentar && (
-                  <Boton
-                    texto="Reenviar mismo intento"
-                    variante="secundario"
-                    deshabilitado={modelo.ocupado}
-                    alPresionar={() => void modelo.reintentar().then(terminar)}
-                  />
-                )}
-              </View>
-            )}
-            {!!modelo.opciones?.motivo && <Text style={s.aviso}>{modelo.opciones.motivo}</Text>}
-            {modelo.codigo === 'GASTO_MODIFICADO' && seleccionado && (
-              <Boton texto="Cargar versión actual" variante="secundario" alPresionar={() => void revisar()} />
-            )}
-            {modelo.cargando && !modelo.opciones && <View accessibilityLabel="Cargando gastos" style={s.esqueleto} />}
-            {!seleccionado && modelo.opciones?.puedeEscribir && (
-              <Boton texto="Registrar gasto" deshabilitado={bloqueado} alPresionar={() => setFormulario(true)} />
-            )}
-            {!seleccionado && modelo.opciones && !modelo.gastos.length && (
-              <Text style={s.suave}>Todavía no hay gastos registrados en esta actividad.</Text>
-            )}
-          </View>
-        }
-        renderItem={({ item }) => {
-          if (item.tipo === 'tituloBalance')
-            return (
-              <View style={s.cabecera}>
-                {modelo.hayMas && (
-                  <Boton
-                    texto="Ver más gastos"
-                    variante="secundario"
-                    deshabilitado={bloqueado}
-                    alPresionar={() => void modelo.verMas()}
-                  />
-                )}
-                <Text style={s.subtitulo}>Balances vigentes</Text>
-                {!modelo.balances.length && <Text style={s.suave}>No hay deudas pendientes.</Text>}
-              </View>
-            );
-          if (item.tipo === 'gasto')
-            return (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${item.gasto.concepto}, ${formatearMonto(item.gasto.montoCentesimos)}. Ver detalle`}
-                disabled={bloqueado}
-                style={s.tarjeta}
-                onPress={() => {
-                  setSeleccionado(item.gasto);
-                  void modelo.revisar(item.gasto.id).then(setSeleccionado);
-                }}
-              >
-                <Text style={s.subtitulo}>{item.gasto.concepto}</Text>
-                <Text style={s.suave}>Pagó {nombrePersona(personas, item.gasto.pagadorId)}</Text>
-                <Text style={s.monto}>{formatearMonto(item.gasto.montoCentesimos)}</Text>
-              </Pressable>
-            );
-          if (item.tipo === 'parte')
-            return (
-              <View style={s.tarjeta}>
-                <Text style={s.texto}>{nombrePersona(personas, item.parte.personaId)}</Text>
-                <Text style={s.monto}>{formatearMonto(item.parte.montoCentesimos)}</Text>
-              </View>
-            );
-          return (
-            <View style={s.tarjeta}>
-              <Text style={s.texto}>
-                {nombrePersona(personas, `p:${item.balance.deudorId}`)} debe a{' '}
-                {nombrePersona(personas, `p:${item.balance.acreedorId}`)}
-              </Text>
-              <Text style={s.monto}>{formatearMonto(item.balance.montoCentesimos)}</Text>
-              {[item.balance.deudorId, item.balance.acreedorId].includes(modelo.opciones?.participacionActualId ?? '') && (
-                <Boton
-                  texto={modelo.opciones?.puedeEscribir ? 'Registrar pago' : 'Ver mis pagos'}
-                  variante="secundario"
-                  deshabilitado={bloqueado}
-                  alPresionar={() =>
-                    router.push({
-                      pathname: '/(app)/actividades/[id]/pagos',
-                      params: {
-                        id: actividadId,
-                        deudorId: item.balance.deudorId,
-                        acreedorId: item.balance.acreedorId,
-                      },
-                    })
-                  }
-                />
-              )}
-            </View>
-          );
-        }}
-        ListFooterComponent={
-          puedeEditar ? (
-            <View style={s.cabecera}>
-              <Boton texto="Editar" variante="secundario" deshabilitado={bloqueado} alPresionar={() => setFormulario(true)} />
-              <Boton texto="Eliminar gasto" variante="peligro" deshabilitado={bloqueado} alPresionar={() => setConfirmar(true)} />
-            </View>
-          ) : undefined
-        }
-      />
-      {formulario && modelo.opciones && (
-        <FormularioGasto
-          key={`${seleccionado?.id ?? 'nuevo'}:${seleccionado?.version ?? 0}`}
-          gasto={seleccionado}
-          personas={personas}
-          inicial={modelo.pendiente?.datos}
-          campos={modelo.campos}
-          bloqueado={bloqueado}
-          puedeGuardar={modelo.opciones.puedeEscribir}
-          ocupado={modelo.ocupado}
-          error={modelo.error}
-          aviso={modelo.aviso}
-          pendiente={!!modelo.pendiente}
-          puedeReintentar={modelo.puedeReintentar}
-          conflicto={modelo.codigo === 'GASTO_MODIFICADO'}
-          alVerificar={() => void modelo.verificar().then(terminar)}
-          alReintentar={() => void modelo.reintentar().then(terminar)}
-          alRevisar={() => void revisar()}
-          alCancelar={() => setFormulario(false)}
-          alGuardar={(datos) => void modelo.enviar(seleccionado ? 'editar' : 'registrar', datos, seleccionado).then(terminar)}
+          ) : null}
+        </View>
+      )}
+      {modelo.pendiente && (
+        <View style={s.panel}>
+          <Text style={s.texto}>Operación pendiente de verificación.</Text>
+          <Boton
+            texto="Verificar resultado"
+            variante="secundario"
+            deshabilitado={modelo.ocupado}
+            alPresionar={() => void modelo.verificar().then(vista.terminar)}
+          />
+          {modelo.puedeReintentar && (
+            <Boton
+              texto="Reenviar mismo intento"
+              variante="secundario"
+              deshabilitado={modelo.ocupado}
+              alPresionar={() => void modelo.reintentar().then(vista.terminar)}
+            />
+          )}
+        </View>
+      )}
+    </>
+  );
+}
+
+/** Una fila de la pestaña: un gasto, el título de balances (con "Ver más gastos" antes) o un balance. */
+export function FilaDeGastosItem({ fila, vista }: { fila: FilaDeGastos; vista: VistaDeGastos }) {
+  if (fila.tipo === 'gasto') return <TarjetaDeGasto gasto={fila.gasto} vista={vista} />;
+  if (fila.tipo === 'balance') return <TarjetaDeBalance balance={fila.balance} vista={vista} />;
+  return <TituloDeBalances vista={vista} />;
+}
+
+function TarjetaDeGasto({ gasto, vista }: { gasto: Gasto; vista: VistaDeGastos }) {
+  const personas = vista.modelo.opciones?.personas ?? [];
+  const monto = formatearMonto(gasto.montoCentesimos);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${gasto.concepto}, ${monto}, pagó ${nombrePersona(personas, gasto.pagadorId)}. Ver detalle`}
+      disabled={vista.bloqueado}
+      style={({ pressed }) => [s.tarjeta, s.tarjetaFila, pressed ? s.tarjetaPresionada : null]}
+      onPress={() => vista.abrirDetalle(gasto)}
+    >
+      <View style={s.columnaPrincipal}>
+        <Text style={s.subtitulo}>{gasto.concepto}</Text>
+        <Text style={s.suave}>Pagó {nombrePersona(personas, gasto.pagadorId)}</Text>
+      </View>
+      <Text style={s.montoFila}>{monto}</Text>
+      <Text style={s.flecha} accessible={false}>
+        ›
+      </Text>
+    </Pressable>
+  );
+}
+
+function TituloDeBalances({ vista }: { vista: VistaDeGastos }) {
+  const { modelo } = vista;
+  return (
+    <View style={s.encabezado}>
+      {modelo.hayMas && (
+        <Boton
+          texto="Ver más gastos"
+          variante="secundario"
+          cargando={modelo.ocupado}
+          deshabilitado={vista.bloqueado}
+          alPresionar={() => void modelo.verMas()}
         />
       )}
-      <Modal transparent visible={confirmar && !bloqueado} animationType="fade" onRequestClose={() => setConfirmar(false)}>
-        <View style={s.velo}>
-          <View style={s.dialogo} accessibilityViewIsModal>
-            <Text style={s.subtitulo}>Eliminar gasto</Text>
-            <Text style={s.texto}>
-              ¿Eliminar “{seleccionado?.concepto}” por {formatearMonto(seleccionado?.montoCentesimos ?? 0)}, pagado por{' '}
-              {nombrePersona(personas, seleccionado?.pagadorId ?? '')}? Esto actualizará los balances de la actividad.
-            </Text>
-            <Boton texto="Cancelar" variante="secundario" alPresionar={() => setConfirmar(false)} />
-            <Pressable
-              accessibilityRole="button"
-              style={s.confirmar}
-              onPress={() => {
-                setConfirmar(false);
-                if (seleccionado) void modelo.enviar('eliminar', null, seleccionado).then(terminar);
-              }}
-            >
-              <Text style={s.confirmarTexto}>Eliminar gasto</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+      <Text style={s.tituloSeccion} accessibilityRole="header">
+        Balances vigentes
+      </Text>
+      {!modelo.balances.length && <Text style={s.suave}>No hay deudas pendientes.</Text>}
+    </View>
+  );
+}
+
+function TarjetaDeBalance({ balance, vista }: { balance: Balance; vista: VistaDeGastos }) {
+  const { modelo, actividadId } = vista;
+  const personas = modelo.opciones?.personas ?? [];
+  const participacionActualId = modelo.opciones?.participacionActualId ?? '';
+  const meInvolucra = balance.deudorId === participacionActualId || balance.acreedorId === participacionActualId;
+  return (
+    <View style={s.tarjeta}>
+      <View style={s.tarjetaFila}>
+        <Text style={[s.texto, s.columnaPrincipal]}>
+          {nombrePersona(personas, `p:${balance.deudorId}`)} debe a {nombrePersona(personas, `p:${balance.acreedorId}`)}
+        </Text>
+        <Text style={s.montoFila}>{formatearMonto(balance.montoCentesimos)}</Text>
+      </View>
+      {meInvolucra && (
+        <Boton
+          texto={modelo.opciones?.puedeEscribir ? 'Registrar pago' : 'Ver mis pagos'}
+          variante="secundario"
+          deshabilitado={vista.bloqueado}
+          alPresionar={() =>
+            router.push({
+              pathname: '/(app)/actividades/[id]/pagos',
+              params: { id: actividadId, deudorId: balance.deudorId, acreedorId: balance.acreedorId },
+            })
+          }
+        />
+      )}
+    </View>
+  );
+}
+
+/**
+ * Hojas de la pestaña: el detalle de un gasto y el formulario para registrar uno nuevo.
+ * El formulario de edición y la confirmación de eliminar se abren dentro de la hoja del detalle: en iOS no se puede
+ * presentar un Modal hermano mientras otro está abierto.
+ */
+export function HojasDeGastos({ vista }: { vista: VistaDeGastos }) {
+  const registrandoNuevo = vista.formularioAbierto && vista.seleccionado === null;
+  return (
+    <>
+      {vista.seleccionado ? <HojaDeDetalle vista={vista} gasto={vista.seleccionado} /> : null}
+      {registrandoNuevo ? <FormularioDeLaVista vista={vista} /> : null}
+    </>
+  );
+}
+
+function FormularioDeLaVista({ vista }: { vista: VistaDeGastos }) {
+  const { modelo, seleccionado } = vista;
+  if (!modelo.opciones) return null;
+  return (
+    <FormularioGasto
+      key={`${seleccionado?.id ?? 'nuevo'}:${seleccionado?.version ?? 0}`}
+      gasto={seleccionado}
+      personas={modelo.opciones.personas}
+      participacionActualId={modelo.opciones.participacionActualId}
+      inicial={modelo.pendiente?.datos}
+      campos={modelo.campos}
+      bloqueado={vista.bloqueado}
+      puedeGuardar={modelo.opciones.puedeEscribir}
+      ocupado={modelo.ocupado}
+      error={modelo.error}
+      aviso={modelo.aviso}
+      pendiente={!!modelo.pendiente}
+      puedeReintentar={modelo.puedeReintentar}
+      conflicto={modelo.codigo === 'GASTO_MODIFICADO'}
+      alVerificar={() => void modelo.verificar().then(vista.terminar)}
+      alReintentar={() => void modelo.reintentar().then(vista.terminar)}
+      alRevisar={() => void vista.cargarVersionActual()}
+      alCancelar={vista.cerrarFormulario}
+      alGuardar={(datos) => void modelo.enviar(seleccionado ? 'editar' : 'registrar', datos, seleccionado).then(vista.terminar)}
+    />
+  );
+}
+
+/** Detalle de un gasto: monto, quién pagó, reparto y, para quien lo registró, Editar y Eliminar. */
+function HojaDeDetalle({ vista, gasto }: { vista: VistaDeGastos; gasto: Gasto }) {
+  const { modelo } = vista;
+  const personas = modelo.opciones?.personas ?? [];
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={vista.cerrarDetalle}>
+      <SafeAreaView style={s.hoja} edges={['left', 'right', 'bottom']}>
+        <FlatList
+          data={gasto.partes}
+          keyExtractor={(parte) => parte.personaId}
+          contentContainerStyle={s.contenidoHoja}
+          ListHeaderComponent={
+            <View style={s.encabezado}>
+              <View style={s.barraHoja}>
+                <Text style={[s.titulo, s.columnaPrincipal]} accessibilityRole="header">
+                  {gasto.concepto}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Cerrar detalle del gasto"
+                  disabled={vista.bloqueado}
+                  hitSlop={8}
+                  style={s.enlace}
+                  onPress={vista.cerrarDetalle}
+                >
+                  <Text style={s.textoEnlace}>Cerrar</Text>
+                </Pressable>
+              </View>
+              <Text style={s.monto}>{formatearMonto(gasto.montoCentesimos)}</Text>
+              <Text style={s.texto}>Pagó {nombrePersona(personas, gasto.pagadorId)}</Text>
+              <AvisosDeGastos vista={vista} />
+              {modelo.codigo === 'GASTO_MODIFICADO' && (
+                <Boton texto="Cargar versión actual" variante="secundario" alPresionar={() => void vista.cargarVersionActual()} />
+              )}
+              <Text style={s.tituloSeccion} accessibilityRole="header">
+                Reparto
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => <FilaDeReparto parte={item} personas={personas} />}
+          ListFooterComponent={
+            vista.puedeEditarSeleccionado ? (
+              <View style={s.acciones}>
+                <Boton texto="Editar" variante="secundario" deshabilitado={vista.bloqueado} alPresionar={vista.abrirFormulario} />
+                <Boton
+                  texto="Eliminar gasto"
+                  variante="peligro"
+                  deshabilitado={vista.bloqueado}
+                  alPresionar={vista.pedirConfirmacionDeEliminar}
+                />
+              </View>
+            ) : undefined
+          }
+        />
+        {vista.confirmandoEliminacion && !vista.bloqueado ? <ConfirmarEliminacion vista={vista} gasto={gasto} /> : null}
+      </SafeAreaView>
+      {/* Editar: el formulario se presenta encima de esta hoja */}
+      {vista.formularioAbierto ? <FormularioDeLaVista vista={vista} /> : null}
+    </Modal>
+  );
+}
+
+function FilaDeReparto({ parte, personas }: { parte: ParteGasto; personas: PersonaGasto[] }) {
+  return (
+    <View style={[s.tarjeta, s.tarjetaFila]}>
+      <Text style={[s.texto, s.columnaPrincipal]}>{nombrePersona(personas, parte.personaId)}</Text>
+      <Text style={s.montoFila}>{formatearMonto(parte.montoCentesimos)}</Text>
+    </View>
+  );
+}
+
+/** Acción destructiva: dice qué se pierde, "Cancelar" secundario y el botón de confirmar repite la acción. */
+function ConfirmarEliminacion({ vista, gasto }: { vista: VistaDeGastos; gasto: Gasto }) {
+  const personas = vista.modelo.opciones?.personas ?? [];
+  return (
+    <View style={s.velo}>
+      <View style={s.dialogo} accessibilityViewIsModal>
+        <Text style={s.subtitulo} accessibilityRole="header">
+          Eliminar gasto
+        </Text>
+        <Text style={s.texto}>
+          ¿Eliminar “{gasto.concepto}” por {formatearMonto(gasto.montoCentesimos)}, pagado por{' '}
+          {nombrePersona(personas, gasto.pagadorId)}? Esto actualizará los balances de la actividad.
+        </Text>
+        <Boton texto="Cancelar" variante="secundario" alPresionar={vista.cancelarEliminacion} />
+        <Pressable accessibilityRole="button" style={s.confirmar} onPress={vista.eliminarSeleccionado}>
+          <Text style={s.confirmarTexto}>Eliminar gasto</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: colores.fondo },
-  contenido: { padding: 20, gap: 12 },
-  cabecera: { gap: 14, paddingVertical: 12 },
-  titulo: { fontFamily: fuentes.titulos, fontSize: 26, color: colores.texto },
-  subtitulo: { fontFamily: fuentes.texto, fontSize: 17, fontWeight: '700', color: colores.texto },
-  texto: { fontFamily: fuentes.texto, fontSize: 15, color: colores.texto },
+  encabezado: { gap: 12, paddingVertical: 12 },
+  acciones: { gap: 12, paddingTop: 16 },
+  hoja: { flex: 1, backgroundColor: colores.fondo },
+  contenidoHoja: { padding: 20, gap: 10 },
+  barraHoja: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  titulo: { fontFamily: fuentes.titulos, fontSize: 24, color: colores.texto },
+  tituloSeccion: { fontFamily: fuentes.texto, fontSize: 17, fontWeight: '700', color: colores.texto, marginTop: 8 },
+  subtitulo: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700', color: colores.texto },
+  texto: { fontFamily: fuentes.texto, fontSize: 15, lineHeight: 21, color: colores.texto },
   suave: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
-  monto: { fontFamily: fuentes.texto, fontSize: 21, fontWeight: '700', color: colores.primarioOscuro },
+  monto: { fontFamily: fuentes.texto, fontSize: 28, fontWeight: '700', color: colores.primarioOscuro },
+  montoFila: { fontFamily: fuentes.texto, fontSize: 17, fontWeight: '700', color: colores.primarioOscuro },
+  flecha: { fontFamily: fuentes.texto, fontSize: 22, color: colores.textoSuave },
+  enlace: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  textoEnlace: { fontFamily: fuentes.texto, fontSize: 15, fontWeight: '700', color: colores.primario },
   tarjeta: {
-    padding: 18,
-    gap: 8,
+    padding: 16,
+    gap: 12,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colores.borde,
     backgroundColor: colores.superficie,
+    marginBottom: 10,
   },
+  tarjetaFila: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  tarjetaPresionada: { backgroundColor: colores.primarioClaro, borderColor: colores.primario },
+  columnaPrincipal: { flex: 1, gap: 4 },
   aviso: {
     padding: 14,
     borderRadius: 12,
+    overflow: 'hidden',
     backgroundColor: colores.primarioClaro,
     color: colores.primarioOscuro,
     fontFamily: fuentes.texto,
@@ -314,8 +504,18 @@ const s = StyleSheet.create({
   panel: { padding: 14, borderRadius: 12, backgroundColor: colores.primarioClaro, gap: 12 },
   panelError: { padding: 14, borderRadius: 12, backgroundColor: colores.errorFondo, gap: 12 },
   error: { fontFamily: fuentes.texto, color: colores.error, fontSize: 14 },
-  esqueleto: { height: 180, borderRadius: 16, backgroundColor: colores.superficieSutil },
-  velo: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: colores.velo },
+  esqueletos: { gap: 10 },
+  esqueleto: { height: 76, borderRadius: 16, backgroundColor: colores.superficieSutil },
+  velo: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: colores.velo,
+  },
   dialogo: { padding: 22, gap: 16, borderRadius: 20, backgroundColor: colores.superficie },
   confirmar: { minHeight: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.error },
   confirmarTexto: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700', color: colores.sobrePrimario },

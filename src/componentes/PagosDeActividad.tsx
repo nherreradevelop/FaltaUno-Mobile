@@ -11,6 +11,7 @@ import { formatearMonto, formatearFechaHora } from '../comun/formato';
 import { colores, fuentes } from '../comun/tema';
 import { usePagos } from '../hooks/usePagos';
 import { Boton } from './Boton';
+import { TituloConVolver } from './TituloConVolver';
 import { FormularioPago } from './FormularioPago';
 
 type Fila = { tipo: 'deuda'; balance: Balance } | { tipo: 'pago'; pago: Pago } | { tipo: 'tituloPagos' };
@@ -143,18 +144,15 @@ export function PagosDeActividad({
         }
         ListHeaderComponent={
           <View style={s.acciones}>
-            <Boton
-              texto={pago ? 'Volver a pagos' : 'Volver a gastos'}
-              variante="secundario"
+            <TituloConVolver
+              titulo={pago ? 'Detalle del pago' : 'Pagos y balances'}
+              etiqueta={pago ? 'Volver a pagos' : 'Volver a gastos'}
               deshabilitado={bloqueado}
-              alPresionar={() => {
+              alVolver={() => {
                 if (pago) setPago(null);
                 else router.back();
               }}
             />
-            <Text style={s.titulo} accessibilityRole="header">
-              {pago ? 'Detalle del pago' : 'Pagos y balances'}
-            </Text>
             {estado}
             {!!avisoInicial && <Text style={s.aviso}>{avisoInicial}</Text>}
             {modelo.cargando && <Text style={s.texto}>Cargando pagos…</Text>}
@@ -312,7 +310,6 @@ const s = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colores.fondo },
   contenido: { padding: 20, gap: 14 },
   acciones: { gap: 14, paddingVertical: 10 },
-  titulo: { fontFamily: fuentes.titulos, fontSize: 26, color: colores.texto },
   subtitulo: { fontFamily: fuentes.texto, fontWeight: '700', fontSize: 18, color: colores.texto },
   texto: { fontFamily: fuentes.texto, fontSize: 16, color: colores.texto },
   suave: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },

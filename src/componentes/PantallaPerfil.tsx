@@ -20,6 +20,7 @@ import { colores, fuentes } from '../comun/tema';
 import { Avatar } from './Avatar';
 import { Boton } from './Boton';
 import { BotonCerrarSesion } from './BotonCerrarSesion';
+import { BotonVolver } from './TituloConVolver';
 
 type EstadoPerfil = { tipo: 'cargando' } | { tipo: 'listo'; perfil: Perfil } | ResultadoDeError;
 
@@ -41,9 +42,9 @@ export function PantallaPerfil({ usuarioId, mostrarVolver = true }: { usuarioId?
     // Sin el borde inferior: lo cubre la barra de navegación (CU39)
     <SafeAreaView style={estilos.pantalla} edges={['top', 'left', 'right']}>
       {mostrarVolver ? (
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.volver} hitSlop={12}>
-          <Text style={estilos.textoVolver}>‹ Volver</Text>
-        </Pressable>
+        <View style={estilos.volver}>
+          <BotonVolver alVolver={() => router.back()} />
+        </View>
       ) : null}
 
       {/* FlatList y no ScrollView: el historial puede tener muchas actividades */}
@@ -273,8 +274,7 @@ function AvisoDeError({ mensaje, reintentar }: { mensaje: string; reintentar: ()
 
 const estilos = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colores.fondo },
-  volver: { paddingHorizontal: 20, paddingVertical: 12 },
-  textoVolver: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '600', color: colores.primario },
+  volver: { paddingHorizontal: 20, paddingVertical: 8 },
   contenido: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
   cargando: { marginVertical: 24 },
   tarjeta: {

@@ -37,6 +37,7 @@ import { Avatar } from './Avatar';
 import { Boton } from './Boton';
 import { EstrellasDeValoracion } from './EstrellasDeValoracion';
 import { FormularioDeValoracion } from './FormularioDeValoracion';
+import { EncabezadoDeGastos, FilaDeGastosItem, HojasDeGastos, useVistaDeGastos, type FilaDeGastos } from './GastosDeActividad';
 import { ResumenDeValoraciones, useMisValoraciones, type EstadoMisValoraciones } from './ValoracionesDeActividad';
 import { useSesion } from '../sesion/SesionContexto';
 import { MapaDelRecorrido } from './MapaDelRecorrido';
@@ -47,6 +48,9 @@ export interface ActividadRecienCreada {
 }
 
 type EstadoPantalla = { tipo: 'cargando' } | { tipo: 'listo'; actividad: DetalleActividad } | ErrorDeActividad;
+
+/** Una fila de la lista del detalle: de la pestaña Participantes o de la pestaña Gastos (CU23–CU25). */
+type FilaDelDetalle = FilaDeParticipantes | FilaDeGastos;
 
 /** CU11 FP paso 10, E1, E2 y E3: resultado de intentar unirse, que se muestra arriba del detalle. */
 type AvisoDeIncorporacion = { tipo: 'exito' | 'error'; mensaje: string } | null;
@@ -77,6 +81,11 @@ export function PantallaDetalleActividad({
   const { sesion } = useSesion();
   const usuarioActualId = sesion?.usuario.id ?? null;
   const [pestanaActiva, setPestanaActiva] = useState<PestanaDeActividad>('participantes');
+  // CU23–CU25: los gastos se piden la primera vez que se abre su pestaña y se conservan al cambiar de pestaña
+  const [gastosAbiertos, setGastosAbiertos] = useState(false);
+  const puedeVerGastos = actividad?.opciones.includes('verGastos') ?? false;
+  const gastos = useVistaDeGastos(actividadId, gastosAbiertos && puedeVerGastos);
+  const enGastos = pestanaActiva === 'gastos' && puedeVerGastos;
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [aviso, setAviso] = useState<AvisoDeIncorporacion>(null);
   const recargarParticipantes = participantes.recargar;
@@ -92,12 +101,17 @@ export function PantallaDetalleActividad({
     });
     return desuscribir;
   }, [actividadId, recargar, recargarParticipantes]);
-  // La lista solo se muestra en la pestaña "Participantes"; lo cargado se conserva al cambiar de pestaña.
+  // Una sola lista para las dos pestañas con contenido; lo cargado de cada una se conserva al cambiar de pestaña.
   // CU09 A1: los invitados externos tienen fila propia, debajo de quien los trae
-  const filasVisibles = pestanaActiva === 'participantes' ? filasDeParticipantes(participantes.lista) : [];
+  const filasVisibles: FilaDelDetalle[] = filasDePestana(pestanaActiva, participantes.lista, enGastos ? gastos.filas : []);
+
+  function elegirPestana(pestana: PestanaDeActividad) {
+    if (pestana === 'gastos') setGastosAbiertos(true);
+    setPestanaActiva(pestana);
+  }
 
   // "Ver todos": abre la pestaña Participantes y baja hasta ella
-  const listaRef = useRef<FlatList<FilaDeParticipantes>>(null);
+  const listaRef = useRef<FlatList<FilaDelDetalle>>(null);
   const posicionDePestanas = useRef(0);
   function verTodosLosParticipantes() {
     setPestanaActiva('participantes');
@@ -132,19 +146,23 @@ export function PantallaDetalleActividad({
         ref={listaRef}
         data={filasVisibles}
         keyExtractor={(fila) => fila.clave}
-        renderItem={({ item }) =>
-          item.tipo === 'usuario' ? (
-            <FilaDeParticipante
-              participante={item.participante}
-              puedeRemover={puedeRemover}
-              valoraciones={valoraciones}
-              usuarioActualId={usuarioActualId}
-              alValorar={abrirValoracion}
-            />
-          ) : (
-            <FilaDeInvitado nombre={item.nombre} invitadoPor={item.invitadoPor} />
-          )
-        }
+        renderItem={({ item }) => {
+          if (item.tipo === 'usuario') {
+            return (
+              <FilaDeParticipante
+                participante={item.participante}
+                puedeRemover={puedeRemover}
+                valoraciones={valoraciones}
+                usuarioActualId={usuarioActualId}
+                alValorar={abrirValoracion}
+              />
+            );
+          }
+          if (item.tipo === 'invitado') {
+            return <FilaDeInvitado nombre={item.nombre} invitadoPor={item.invitadoPor} />;
+          }
+          return <FilaDeGastosItem fila={item} vista={gastos} />;
+        }}
         contentContainerStyle={estilos.contenido}
         ListHeaderComponent={
           <>
@@ -155,7 +173,7 @@ export function PantallaDetalleActividad({
               reintentar={reintentar}
               participantes={participantes}
               pestanaActiva={pestanaActiva}
-              alElegirPestana={setPestanaActiva}
+              alElegirPestana={elegirPestana}
               alVerTodos={verTodosLosParticipantes}
               alUbicarPestanas={(y) => {
                 posicionDePestanas.current = y;
@@ -164,6 +182,7 @@ export function PantallaDetalleActividad({
             {valoraciones && pestanaActiva === 'participantes' ? (
               <ResumenDeValoraciones valoraciones={valoraciones} aviso={avisoDeValoracion} />
             ) : null}
+            {enGastos ? <EncabezadoDeGastos vista={gastos} /> : null}
           </>
         }
         ListFooterComponent={
@@ -174,6 +193,7 @@ export function PantallaDetalleActividad({
       />
 
       {actividad ? <BarraDeAccionPrincipal actividad={actividad} /> : null}
+      {enGastos ? <HojasDeGastos vista={gastos} /> : null}
       {actividad ? <MenuDeOpciones actividad={actividad} visible={menuAbierto} alCerrar={() => setMenuAbierto(false)} /> : null}
       {valorando ? (
         <FormularioDeValoracion
@@ -704,17 +724,25 @@ interface PropsPie {
   participantes: EstadoParticipantes;
 }
 
-/** Debajo de la lista: en "Participantes", la carga y "Ver más" (A1); en Chat y Gastos, su caso de uso pendiente. */
+/**
+ * Filas de la pestaña activa. Participantes y Gastos comparten la FlatList del detalle (una sola lista virtualizada);
+ * Chat no tiene filas todavía.
+ */
+function filasDePestana(
+  pestana: PestanaDeActividad,
+  listaDeParticipantes: ParticipanteDeActividad[],
+  filasDeGastos: FilaDeGastos[],
+): FilaDelDetalle[] {
+  if (pestana === 'participantes') return filasDeParticipantes(listaDeParticipantes);
+  if (pestana === 'gastos') return filasDeGastos;
+  return [];
+}
+
+/** Debajo de la lista: en "Participantes", la carga y "Ver más" (A1); en Chat, su caso de uso pendiente. */
 function PieDelDetalle({ actividad, pestanaActiva, participantes }: PropsPie) {
-  if (pestanaActiva === 'gastos' && actividad.opciones.includes('verGastos')) {
-    return (
-      <View style={estilos.pie}>
-        <Boton
-          texto="Abrir gastos de la actividad"
-          alPresionar={() => router.push({ pathname: '/actividades/[id]/gastos', params: { id: actividad.id } })}
-        />
-      </View>
-    );
+  // Gastos resuelve su carga y "Ver más gastos" dentro de sus propias filas
+  if (pestanaActiva === 'gastos') {
+    return null;
   }
   const definicion = pestanasDisponibles(actividad.opciones).find(({ pestana }) => pestana === pestanaActiva);
   if (definicion === undefined) {

@@ -19,15 +19,18 @@ import { useSesion } from '../sesion/SesionContexto';
 // Conserva la intención al cambiar de pestaña, aislada por usuario y actividad, sin guardar tokens.
 const pendientes = new Map<string, IntentoGasto>();
 
-/** Estado común de CU23–CU25: no permite cambiar una intención con resultado desconocido. */
-export function useGastos(actividadId: string) {
+/**
+ * Estado común de CU23–CU25: no permite cambiar una intención con resultado desconocido.
+ * Con habilitado = false no pide nada: el detalle de la actividad carga los gastos recién al abrir su pestaña.
+ */
+export function useGastos(actividadId: string, habilitado = true) {
   const { sesion } = useSesion();
   const ambito = `${sesion?.usuario.id ?? ''}:${actividadId}`;
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [opciones, setOpciones] = useState<OpcionesGasto | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState(habilitado);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState('');
   const [codigo, setCodigo] = useState('');
@@ -62,14 +65,15 @@ export function useGastos(actividadId: string) {
   );
 
   useEffect(() => {
+    if (!habilitado) return;
     vigente.current = true;
     void recargar();
     return () => {
       vigente.current = false;
     };
-  }, [recargar]);
+  }, [recargar, habilitado]);
 
-  useActualizacionFinanciera(actividadId, recargar);
+  useActualizacionFinanciera(actividadId, recargar, habilitado);
 
   function guardarPendiente(intento: IntentoGasto | null) {
     if (intento) pendientes.set(ambito, intento);

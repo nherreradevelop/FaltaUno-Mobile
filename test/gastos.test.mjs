@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   datosDelFormulario,
   formularioDeGasto,
+  formularioDeGastoNuevo,
   leerMontoGasto,
   nombrePersona,
   previsualizarReparto,
@@ -35,6 +36,18 @@ describe('CU23–CU25 – formulario y reparto de gastos', () => {
       assert.equal(leerMontoGasto(texto), null);
     const errores = validarFormularioGasto(formularioDeGasto(null));
     assert.deepEqual(Object.keys(errores), ['concepto', 'montoCentesimos', 'pagadorId', 'participantes']);
+  });
+  it('CU23 FP: un gasto nuevo sugiere que pagó el usuario actual y lo reparte entre todos, sin registrarlo', () => {
+    const personas = [
+      { id: 'p:a', participacionId: 'a', invitadoId: null },
+      { id: 'p:b', participacionId: 'b', invitadoId: null },
+      { id: 'i:x', participacionId: 'b', invitadoId: 'x' },
+    ];
+    const formulario = formularioDeGastoNuevo(personas, 'b');
+    assert.equal(formulario.pagadorId, 'p:b');
+    assert.deepEqual(formulario.participantes, ['p:a', 'p:b', 'i:x']);
+    // Falta concepto y monto: la sugerencia no alcanza para registrar sin que el usuario complete el formulario
+    assert.deepEqual(Object.keys(validarFormularioGasto(formulario)), ['concepto', 'montoCentesimos']);
   });
   it('CU23 E2: al quitar todas las personas, no permite guardar', () => {
     const formulario = { concepto: 'Agua', monto: '50', pagadorId: 'p:a', participantes: [] };
