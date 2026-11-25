@@ -62,6 +62,7 @@ export function FormularioPago({
             <Text style={s.texto}>Máximo permitido: {formatearMonto(maximo)}. Podés registrar un pago total o parcial.</Text>
             {children}
             <Campo
+              tonoError="advertencia"
               etiqueta="Monto pagado ($)"
               keyboardType="decimal-pad"
               value={monto}

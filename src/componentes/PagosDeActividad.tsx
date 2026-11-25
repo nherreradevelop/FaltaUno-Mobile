@@ -94,7 +94,7 @@ export function PagosDeActividad({
           {modelo.error}
         </Text>
       )}
-      {!!modelo.opciones?.motivo && <Text style={s.aviso}>{modelo.opciones.motivo}</Text>}
+      {!!modelo.opciones?.motivo && <Text style={s.advertencia}>{modelo.opciones.motivo}</Text>}
       {modelo.pendiente && (
         <>
           <Text style={s.texto}>Operación pendiente de verificación.</Text>
@@ -156,7 +156,7 @@ export function PagosDeActividad({
               />
             </View>
             {estado}
-            {!!avisoInicial && <Text style={s.aviso}>{avisoInicial}</Text>}
+            {!!avisoInicial && <Text style={s.advertencia}>{avisoInicial}</Text>}
             {modelo.cargando && <Text style={s.texto}>Cargando pagos…</Text>}
             {!modelo.pendiente && (
               <Boton
@@ -208,7 +208,7 @@ export function PagosDeActividad({
                   actividad.
                 </Text>
                 {modelo.opciones?.historialVencido && (
-                  <Text style={s.aviso}>Venció el plazo de conservación del historial de pagos.</Text>
+                  <Text style={s.advertencia}>Venció el plazo de conservación del historial de pagos.</Text>
                 )}
                 {!!modelo.opciones?.historialHasta && !modelo.opciones.historialVencido && (
                   <Text style={s.suave}>Disponible hasta {formatearFechaHora(modelo.opciones.historialHasta)}.</Text>
@@ -311,6 +311,15 @@ export function PagosDeActividad({
   );
 }
 const s = StyleSheet.create({
+  advertencia: {
+    padding: 14,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: colores.acento,
+    fontFamily: fuentes.texto,
+    color: colores.advertencia,
+    backgroundColor: colores.advertenciaSuave,
+  },
   presentacion: {
     padding: 18,
     borderWidth: 1,
@@ -353,7 +362,13 @@ const s = StyleSheet.create({
     backgroundColor: colores.primarioClaro,
     borderRadius: 12,
   },
-  error: { padding: 14, fontFamily: fuentes.texto, color: colores.error, backgroundColor: colores.errorFondo, borderRadius: 12 },
+  error: {
+    padding: 14,
+    fontFamily: fuentes.texto,
+    color: colores.advertencia,
+    backgroundColor: colores.advertenciaSuave,
+    borderRadius: 12,
+  },
   velo: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: colores.velo },
   dialogo: { padding: 22, gap: 16, borderRadius: 20, backgroundColor: colores.superficie },
 });

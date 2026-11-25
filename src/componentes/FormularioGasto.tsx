@@ -115,6 +115,7 @@ export function FormularioGasto(props: Props) {
                     </View>
                   )}
                   <Campo
+                    tonoError="advertencia"
                     etiqueta="Concepto"
                     value={formulario.concepto}
                     maxLength={150}
@@ -124,6 +125,7 @@ export function FormularioGasto(props: Props) {
                     onChangeText={(concepto) => setFormulario({ ...formulario, concepto })}
                   />
                   <Campo
+                    tonoError="advertencia"
                     etiqueta="Monto total ($)"
                     value={formulario.monto}
                     keyboardType="decimal-pad"
@@ -218,7 +220,7 @@ const s = StyleSheet.create({
   subtitulo: { fontFamily: fuentes.texto, fontSize: 17, fontWeight: '700', color: colores.texto },
   texto: { fontFamily: fuentes.texto, fontSize: 15, color: colores.texto },
   suave: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
-  error: { fontFamily: fuentes.texto, fontSize: 14, color: colores.error },
+  error: { fontFamily: fuentes.texto, fontSize: 14, color: colores.advertencia },
   aviso: { padding: 14, gap: 12, borderRadius: 14, backgroundColor: colores.primarioClaro },
   persona: {
     padding: 14,

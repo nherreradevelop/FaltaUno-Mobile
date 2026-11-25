@@ -187,7 +187,7 @@ export function EncabezadoDeGastos({ vista }: { vista: VistaDeGastos }) {
     <View style={s.encabezado}>
       {/* Con el detalle abierto, los avisos se muestran en la hoja */}
       {!vista.seleccionado ? <AvisosDeGastos vista={vista} /> : null}
-      {!!modelo.opciones?.motivo && <Text style={s.aviso}>{modelo.opciones.motivo}</Text>}
+      {!!modelo.opciones?.motivo && <Text style={s.advertencia}>{modelo.opciones.motivo}</Text>}
 
       <View style={s.presentacion}>
         <Text style={s.descripcion}>Cada gasto y su reparto actualizan los balances juntos.</Text>
@@ -503,6 +503,15 @@ function NombrePagador({ personas, id }: { personas: PersonaGasto[]; id: string 
 }
 
 const s = StyleSheet.create({
+  advertencia: {
+    padding: 14,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: colores.acento,
+    fontFamily: fuentes.texto,
+    color: colores.advertencia,
+    backgroundColor: colores.advertenciaSuave,
+  },
   presentacion: {
     padding: 18,
     gap: 14,
@@ -563,8 +572,8 @@ const s = StyleSheet.create({
     fontFamily: fuentes.texto,
   },
   panel: { padding: 14, borderRadius: 12, backgroundColor: colores.primarioClaro, gap: 12 },
-  panelError: { padding: 14, borderRadius: 12, backgroundColor: colores.errorFondo, gap: 12 },
-  error: { fontFamily: fuentes.texto, color: colores.error, fontSize: 14 },
+  panelError: { padding: 14, borderRadius: 12, backgroundColor: colores.advertenciaSuave, gap: 12 },
+  error: { fontFamily: fuentes.texto, color: colores.advertencia, fontSize: 14 },
   esqueletos: { gap: 10 },
   esqueleto: { height: 76, borderRadius: 16, backgroundColor: colores.superficieSutil },
   velo: {
