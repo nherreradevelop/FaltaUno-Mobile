@@ -192,7 +192,7 @@ export function PagosDeActividad({
                 )}
               </>
             )}
-            {!pago && <Text style={s.subtitulo}>Mis deudas pendientes</Text>}
+            {!pago && <Text style={[s.subtitulo, s.tituloDeudas]}>Mis deudas pendientes</Text>}
             {!pago && !modelo.cargando && !modelo.opciones?.deudas.length && (
               <Text style={s.suave}>No hay deudas pendientes.</Text>
             )}
@@ -220,7 +220,7 @@ export function PagosDeActividad({
             );
           if (item.tipo === 'deuda')
             return (
-              <View style={s.tarjeta}>
+              <View style={[s.tarjeta, s.tarjetaDeuda]}>
                 <Text style={s.texto}>
                   {nombrePersona(personas, `p:${item.balance.deudorId}`)} debe a{' '}
                   {nombrePersona(personas, `p:${item.balance.acreedorId}`)}
@@ -341,6 +341,8 @@ const s = StyleSheet.create({
     borderLeftColor: colores.balancesPrimario,
     paddingLeft: 10,
   },
+  tituloDeudas: { color: colores.advertencia, borderLeftColor: colores.acento },
+  tarjetaDeuda: { borderLeftColor: colores.acento },
   texto: { fontFamily: fuentes.texto, fontSize: 16, color: colores.texto },
   suave: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
   monto: { fontFamily: fuentes.texto, fontWeight: '700', fontSize: 21, color: colores.texto },
