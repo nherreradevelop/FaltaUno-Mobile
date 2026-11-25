@@ -26,6 +26,13 @@ export const colores = {
   acentoSuave: '#FDEBD9',
   /** Texto sobre acentoSuave. */
   acentoTexto: '#8A4210',
+  // Sección financiera: mismos tonos que la web.
+  finanzasPrimario: '#197D87',
+  finanzasFuerte: '#125763',
+  finanzasSuave: '#D4EFED',
+  finanzasMedio: '#6EC6C7',
+  balancesPrimario: '#24755D',
+  balancesSuave: '#E0F1E7',
   // Estados
   exito: '#2D5A2D',
   exitoSuave: '#E3EFE3',
@@ -39,6 +46,15 @@ export const colores = {
   // Capas
   /** Fondo detrás de diálogos y menús modales. */
   velo: 'rgba(15, 37, 55, 0.4)',
+} as const;
+
+/** Relieve suave de las tarjetas, compartido entre gastos y pagos. */
+export const sombraSuave = {
+  shadowColor: colores.texto,
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.12,
+  shadowRadius: 4,
+  elevation: 2,
 } as const;
 
 /** Fondo de los avatares con iniciales (siempre con texto sobrePrimario). Se eligen con colorDeAvatar(nombre). */

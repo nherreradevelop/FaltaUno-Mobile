@@ -48,6 +48,9 @@ export interface ActividadRecienCreada {
 
 type EstadoPantalla = { tipo: 'cargando' } | { tipo: 'listo'; actividad: DetalleActividad } | ErrorDeActividad;
 
+/** Una fila de la lista del detalle: de la pestaña Participantes o de la pestaña Gastos (CU23–CU25). */
+type FilaDelDetalle = FilaDeParticipantes;
+
 /** CU11 FP paso 10, E1, E2 y E3: resultado de intentar unirse, que se muestra arriba del detalle. */
 type AvisoDeIncorporacion = { tipo: 'exito' | 'error'; mensaje: string } | null;
 
@@ -92,12 +95,16 @@ export function PantallaDetalleActividad({
     });
     return desuscribir;
   }, [actividadId, recargar, recargarParticipantes]);
-  // La lista solo se muestra en la pestaña "Participantes"; lo cargado se conserva al cambiar de pestaña.
+  // Una sola lista para las dos pestañas con contenido; lo cargado de cada una se conserva al cambiar de pestaña.
   // CU09 A1: los invitados externos tienen fila propia, debajo de quien los trae
-  const filasVisibles = pestanaActiva === 'participantes' ? filasDeParticipantes(participantes.lista) : [];
+  const filasVisibles: FilaDelDetalle[] = pestanaActiva === 'participantes' ? filasDeParticipantes(participantes.lista) : [];
+
+  function elegirPestana(pestana: PestanaDeActividad) {
+    setPestanaActiva(pestana);
+  }
 
   // "Ver todos": abre la pestaña Participantes y baja hasta ella
-  const listaRef = useRef<FlatList<FilaDeParticipantes>>(null);
+  const listaRef = useRef<FlatList<FilaDelDetalle>>(null);
   const posicionDePestanas = useRef(0);
   function verTodosLosParticipantes() {
     setPestanaActiva('participantes');
@@ -132,19 +139,23 @@ export function PantallaDetalleActividad({
         ref={listaRef}
         data={filasVisibles}
         keyExtractor={(fila) => fila.clave}
-        renderItem={({ item }) =>
-          item.tipo === 'usuario' ? (
-            <FilaDeParticipante
-              participante={item.participante}
-              puedeRemover={puedeRemover}
-              valoraciones={valoraciones}
-              usuarioActualId={usuarioActualId}
-              alValorar={abrirValoracion}
-            />
-          ) : (
-            <FilaDeInvitado nombre={item.nombre} invitadoPor={item.invitadoPor} />
-          )
-        }
+        renderItem={({ item }) => {
+          if (item.tipo === 'usuario') {
+            return (
+              <FilaDeParticipante
+                participante={item.participante}
+                puedeRemover={puedeRemover}
+                valoraciones={valoraciones}
+                usuarioActualId={usuarioActualId}
+                alValorar={abrirValoracion}
+              />
+            );
+          }
+          if (item.tipo === 'invitado') {
+            return <FilaDeInvitado nombre={item.nombre} invitadoPor={item.invitadoPor} />;
+          }
+          return null;
+        }}
         contentContainerStyle={estilos.contenido}
         ListHeaderComponent={
           <>
@@ -155,7 +166,7 @@ export function PantallaDetalleActividad({
               reintentar={reintentar}
               participantes={participantes}
               pestanaActiva={pestanaActiva}
-              alElegirPestana={setPestanaActiva}
+              alElegirPestana={elegirPestana}
               alVerTodos={verTodosLosParticipantes}
               alUbicarPestanas={(y) => {
                 posicionDePestanas.current = y;
@@ -490,8 +501,19 @@ function DetalleDeLaActividad(props: PropsDetalle) {
       {actividad.opciones.includes('verMapa') ? (
         <MapaDelRecorrido origen={actividad.origen} destino={actividad.destino} puntosDePartida={puntosDePartida} />
       ) : null}
+      {actividad.opciones.includes('verGastos') ? (
+        <View style={estilos.seccionGastos}>
+          <Text style={estilos.tituloGastos}>Gastos de la actividad</Text>
+          <Text style={estilos.textoSuave}>Cada gasto y su reparto actualizan los balances juntos.</Text>
+          <Boton
+            texto="Abrir gastos de la actividad"
+            tono="finanzas"
+            alPresionar={() => router.push({ pathname: '/actividades/[id]/gastos', params: { id: actividad.id } })}
+          />
+        </View>
+      ) : null}
 
-      {/* Participantes (A1), Chat y Gastos; la lista de participantes sigue debajo de este encabezado */}
+      {/* Participantes (A1) y Chat; la lista de participantes sigue debajo de este encabezado */}
       <View onLayout={(evento) => alUbicarPestanas(evento.nativeEvent.layout.y)}>
         <BarraDePestanas {...props} />
       </View>
@@ -704,7 +726,7 @@ interface PropsPie {
   participantes: EstadoParticipantes;
 }
 
-/** Debajo de la lista: en "Participantes", la carga y "Ver más" (A1); en Chat y Gastos, su caso de uso pendiente. */
+/** Debajo de la lista: en "Participantes", la carga y "Ver más" (A1); en Chat, su caso de uso pendiente. */
 function PieDelDetalle({ actividad, pestanaActiva, participantes }: PropsPie) {
   const definicion = pestanasDisponibles(actividad.opciones).find(({ pestana }) => pestana === pestanaActiva);
   if (definicion === undefined) {
@@ -819,6 +841,17 @@ function AvisoDeError({ mensaje, reintentar }: { mensaje: string; reintentar: ()
 }
 
 const estilos = StyleSheet.create({
+  seccionGastos: {
+    padding: 18,
+    gap: 14,
+    borderWidth: 1,
+    borderTopWidth: 4,
+    borderColor: colores.borde,
+    borderTopColor: colores.finanzasPrimario,
+    borderRadius: 18,
+    backgroundColor: colores.finanzasSuave,
+  },
+  tituloGastos: { fontFamily: fuentes.titulos, fontSize: 20, color: colores.finanzasFuerte },
   pantalla: { flex: 1, backgroundColor: colores.fondo },
   barraSuperior: {
     flexDirection: 'row',

@@ -5,12 +5,13 @@ import { colores, fuentes } from '../comun/tema';
 interface PropsCampo extends TextInputProps {
   etiqueta: string;
   error?: string;
+  tonoError?: 'error' | 'advertencia';
   /** Control a la derecha del campo, en la misma línea (por ejemplo, un botón para quitarlo). */
   accesorio?: ReactNode;
 }
 
 /** Campo de formulario con etiqueta y mensaje de error. */
-export function Campo({ etiqueta, error, style, accesorio, ...propsInput }: PropsCampo) {
+export function Campo({ etiqueta, error, tonoError = 'error', style, accesorio, ...propsInput }: PropsCampo) {
   return (
     <View style={estilos.contenedor}>
       <Text style={estilos.etiqueta}>{etiqueta}</Text>
@@ -18,12 +19,16 @@ export function Campo({ etiqueta, error, style, accesorio, ...propsInput }: Prop
         <TextInput
           accessibilityLabel={etiqueta}
           placeholderTextColor={colores.textoSuave}
-          style={[estilos.input, error ? estilos.inputConError : null, style]}
+          style={[
+            estilos.input,
+            error ? (tonoError === 'advertencia' ? estilos.inputConAdvertencia : estilos.inputConError) : null,
+            style,
+          ]}
           {...propsInput}
         />
         {accesorio}
       </View>
-      {error ? <Text style={estilos.error}>{error}</Text> : null}
+      {error ? <Text style={[estilos.error, tonoError === 'advertencia' ? estilos.textoAdvertencia : null]}>{error}</Text> : null}
     </View>
   );
 }
@@ -44,6 +49,8 @@ const estilos = StyleSheet.create({
     backgroundColor: colores.superficie,
     color: colores.texto,
   },
+  inputConAdvertencia: { borderColor: colores.acento },
+  textoAdvertencia: { color: colores.advertencia },
   inputConError: { borderColor: colores.error },
   error: { fontFamily: fuentes.texto, fontSize: 13, color: colores.error },
 });

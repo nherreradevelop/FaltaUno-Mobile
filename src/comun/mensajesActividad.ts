@@ -98,9 +98,9 @@ export function resumenDeQuienesVan(participantes: ParticipanteDeActividad[], cu
 
 /**
  * Pestañas al pie del detalle (los datos, el pronóstico y el mapa quedan siempre visibles arriba).
- * Chat y Gastos aparecen solo si la API ofrece esa opción (RN2, RN5).
+ * Chat aparece solo si la API ofrece esa opción (RN2, RN5). Gastos tiene una sección propia debajo del mapa.
  */
-export type PestanaDeActividad = 'participantes' | 'chat' | 'gastos';
+export type PestanaDeActividad = 'participantes' | 'chat';
 
 export interface DefinicionDePestana {
   pestana: PestanaDeActividad;
@@ -114,7 +114,6 @@ export interface DefinicionDePestana {
 export const PESTANAS: DefinicionDePestana[] = [
   { pestana: 'participantes', etiqueta: 'Participantes', opcion: 'verParticipantes', casoDeUsoPendiente: null }, // A1
   { pestana: 'chat', etiqueta: 'Chat', opcion: 'verChat', casoDeUsoPendiente: 'CU16' }, // Pendiente: CU16
-  { pestana: 'gastos', etiqueta: 'Gastos', opcion: 'verGastos', casoDeUsoPendiente: 'CU34' }, // Pendiente: CU34
 ];
 
 /** Las pestañas que corresponden según las opciones que ofreció la API. */

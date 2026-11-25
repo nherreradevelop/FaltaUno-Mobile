@@ -9,6 +9,7 @@ import {
   type Notificacion,
 } from '../../../../src/api/notificaciones';
 import { Boton } from '../../../../src/componentes/Boton';
+import { TituloConVolver } from '../../../../src/componentes/TituloConVolver';
 import { colores, fuentes } from '../../../../src/comun/tema';
 import {
   agregarAlPrincipio,
@@ -141,9 +142,7 @@ export default function PantallaNotificaciones() {
   return (
     <SafeAreaView style={estilos.pantalla} edges={['top', 'left', 'right']}>
       <View style={estilos.barra}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={12}>
-          <Text style={estilos.enlace}>‹ Volver</Text>
-        </Pressable>
+        <TituloConVolver titulo="Notificaciones" alVolver={() => router.back()} />
         {noLeidas > 0 ? (
           <Pressable
             accessibilityRole="button"
@@ -151,14 +150,12 @@ export default function PantallaNotificaciones() {
             disabled={marcandoTodas}
             onPress={() => void marcarTodas()}
             hitSlop={12}
+            style={estilos.marcarTodas}
           >
             <Text style={estilos.enlace}>{marcandoTodas ? 'Marcando…' : 'Marcar todas como leídas'}</Text>
           </Pressable>
         ) : null}
       </View>
-      <Text style={estilos.titulo} accessibilityRole="header">
-        Notificaciones
-      </Text>
 
       {carga === 'inicial' ? (
         <View style={estilos.esqueletos} accessibilityRole="progressbar" accessibilityLabel="Cargando notificaciones">
@@ -257,22 +254,9 @@ function FilaNotificacion({ notificacion, alPresionar, alMarcarLeida, marcando, 
 
 const estilos = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colores.fondo },
-  barra: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
+  barra: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 4 },
+  marcarTodas: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   enlace: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '600', color: colores.primario },
-  titulo: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    fontFamily: fuentes.titulos,
-    fontWeight: '800',
-    fontSize: 26,
-    color: colores.texto,
-  },
   contenido: { paddingHorizontal: 20, paddingBottom: 32, gap: 8 },
   esqueletos: { paddingHorizontal: 20, gap: 8 },
   esqueleto: { height: 64, borderRadius: 14, backgroundColor: colores.superficieSutil },
