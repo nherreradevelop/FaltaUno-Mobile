@@ -6,17 +6,38 @@ import { ErrorApi } from '../api/cliente';
 import { obtenerGasto, type Balance, type Gasto, type ParteGasto, type PersonaGasto } from '../api/gastos';
 import { formatearMonto } from '../comun/formato';
 import { nombrePersona } from '../comun/gastos';
-import { colores, fuentes } from '../comun/tema';
+import { colores, fuentes, sombraSuave } from '../comun/tema';
 import { useGastos } from '../hooks/useGastos';
 import { Boton } from './Boton';
 import { FormularioGasto } from './FormularioGasto';
+import { TituloConVolver } from './TituloConVolver';
 
-/*
- * CU23–CU25 dentro de la pestaña "Gastos" del detalle de la actividad (CU09).
- * La lista de gastos y balances son filas de la FlatList del detalle (una sola lista virtualizada, sin anidar);
- * el detalle de un gasto, el formulario y la confirmación de eliminar se abren en una hoja modal.
- * CU26 (pagos) se abre desde cada balance. Pendiente: resto de CU34.
- */
+/** CU23–CU25: pantalla independiente accesible debajo del mapa, con una sola lista virtualizada. */
+export function GastosDeActividad({ actividadId }: { actividadId: string }) {
+  const vista = useVistaDeGastos(actividadId, true);
+  return (
+    <SafeAreaView style={s.hoja}>
+      <FlatList
+        data={vista.filas}
+        keyExtractor={(fila) => fila.clave}
+        contentContainerStyle={s.contenidoHoja}
+        ListHeaderComponent={
+          <>
+            <TituloConVolver
+              titulo="Gastos de la actividad"
+              etiqueta="Volver a la actividad"
+              deshabilitado={vista.bloqueado}
+              alVolver={() => router.back()}
+            />
+            <EncabezadoDeGastos vista={vista} />
+          </>
+        }
+        renderItem={({ item }) => <FilaDeGastosItem fila={item} vista={vista} />}
+      />
+      <HojasDeGastos vista={vista} />
+    </SafeAreaView>
+  );
+}
 
 /** Una fila de la pestaña Gastos. La clave va en la fila para que la FlatList del detalle use un único keyExtractor. */
 export type FilaDeGastos =
@@ -29,7 +50,7 @@ export type VistaDeGastos = ReturnType<typeof useVistaDeGastos>;
 const CANTIDAD_DE_ESQUELETOS = 3;
 
 /**
- * Estado de la pestaña Gastos. Con habilitado = false no pide nada: los gastos se cargan la primera vez que se abre
+ * Estado de la pantalla de gastos. Con habilitado = false no pide nada: los gastos se cargan la primera vez que se abre
  * la pestaña y se conservan al cambiar a otra.
  */
 export function useVistaDeGastos(actividadId: string, habilitado: boolean) {
@@ -168,19 +189,20 @@ export function EncabezadoDeGastos({ vista }: { vista: VistaDeGastos }) {
       {!vista.seleccionado ? <AvisosDeGastos vista={vista} /> : null}
       {!!modelo.opciones?.motivo && <Text style={s.aviso}>{modelo.opciones.motivo}</Text>}
 
-      {modelo.opciones?.puedeEscribir ? (
-        <Boton texto="Registrar gasto" deshabilitado={bloqueado} alPresionar={vista.abrirFormulario} />
-      ) : null}
+      <View style={s.presentacion}>
+        <Text style={s.descripcion}>Cada gasto y su reparto actualizan los balances juntos.</Text>
+        {modelo.opciones?.puedeEscribir ? (
+          <Boton texto="Registrar gasto" tono="finanzas" deshabilitado={bloqueado} alPresionar={vista.abrirFormulario} />
+        ) : null}
+      </View>
       {modelo.opciones ? (
-        <Pressable
-          accessibilityRole="link"
-          disabled={bloqueado}
-          hitSlop={8}
-          style={s.enlace}
-          onPress={() => router.push({ pathname: '/(app)/actividades/[id]/pagos', params: { id: actividadId } })}
-        >
-          <Text style={s.textoEnlace}>Ver mis pagos</Text>
-        </Pressable>
+        <Boton
+          texto="Ver mis pagos"
+          tono="balances"
+          variante="secundario"
+          deshabilitado={bloqueado}
+          alPresionar={() => router.push({ pathname: '/(app)/actividades/[id]/pagos', params: { id: actividadId } })}
+        />
       ) : null}
 
       {cargandoPorPrimeraVez ? <EsqueletosDeGastos /> : null}
@@ -263,12 +285,14 @@ function TarjetaDeGasto({ gasto, vista }: { gasto: Gasto; vista: VistaDeGastos }
       accessibilityRole="button"
       accessibilityLabel={`${gasto.concepto}, ${monto}, pagó ${nombrePersona(personas, gasto.pagadorId)}. Ver detalle`}
       disabled={vista.bloqueado}
-      style={({ pressed }) => [s.tarjeta, s.tarjetaFila, pressed ? s.tarjetaPresionada : null]}
+      style={({ pressed }) => [s.tarjeta, s.tarjetaGasto, s.tarjetaFila, pressed ? s.tarjetaPresionada : null]}
       onPress={() => vista.abrirDetalle(gasto)}
     >
       <View style={s.columnaPrincipal}>
         <Text style={s.subtitulo}>{gasto.concepto}</Text>
-        <Text style={s.suave}>Pagó {nombrePersona(personas, gasto.pagadorId)}</Text>
+        <Text style={s.suave}>
+          Pagó <NombrePagador personas={personas} id={gasto.pagadorId} />
+        </Text>
       </View>
       <Text style={s.montoFila}>{monto}</Text>
       <Text style={s.flecha} accessible={false}>
@@ -305,7 +329,7 @@ function TarjetaDeBalance({ balance, vista }: { balance: Balance; vista: VistaDe
   const participacionActualId = modelo.opciones?.participacionActualId ?? '';
   const meInvolucra = balance.deudorId === participacionActualId || balance.acreedorId === participacionActualId;
   return (
-    <View style={s.tarjeta}>
+    <View style={[s.tarjeta, s.tarjetaBalance]}>
       <View style={s.tarjetaFila}>
         <Text style={[s.texto, s.columnaPrincipal]}>
           {nombrePersona(personas, `p:${balance.deudorId}`)} debe a {nombrePersona(personas, `p:${balance.acreedorId}`)}
@@ -314,6 +338,7 @@ function TarjetaDeBalance({ balance, vista }: { balance: Balance; vista: VistaDe
       </View>
       {meInvolucra && (
         <Boton
+          tono="balances"
           texto={modelo.opciones?.puedeEscribir ? 'Registrar pago' : 'Ver mis pagos'}
           variante="secundario"
           deshabilitado={vista.bloqueado}
@@ -401,7 +426,9 @@ function HojaDeDetalle({ vista, gasto }: { vista: VistaDeGastos; gasto: Gasto })
                 </Pressable>
               </View>
               <Text style={s.monto}>{formatearMonto(gasto.montoCentesimos)}</Text>
-              <Text style={s.texto}>Pagó {nombrePersona(personas, gasto.pagadorId)}</Text>
+              <Text style={s.texto}>
+                Pagó <NombrePagador personas={personas} id={gasto.pagadorId} />
+              </Text>
               <AvisosDeGastos vista={vista} />
               {modelo.codigo === 'GASTO_MODIFICADO' && (
                 <Boton texto="Cargar versión actual" variante="secundario" alPresionar={() => void vista.cargarVersionActual()} />
@@ -465,23 +492,57 @@ function ConfirmarEliminacion({ vista, gasto }: { vista: VistaDeGastos; gasto: G
   );
 }
 
+function NombrePagador({ personas, id }: { personas: PersonaGasto[]; id: string }) {
+  const persona = personas.find((p) => p.id === id);
+  return (
+    <>
+      <Text style={s.pagador}>{persona?.nombre ?? 'Participante'}</Text>
+      {persona?.invitadoId && ` (invitado de ${persona.responsable})`}
+    </>
+  );
+}
+
 const s = StyleSheet.create({
+  presentacion: {
+    padding: 18,
+    gap: 14,
+    borderWidth: 1,
+    borderTopWidth: 4,
+    borderColor: colores.borde,
+    borderTopColor: colores.finanzasPrimario,
+    borderRadius: 18,
+    backgroundColor: colores.finanzasSuave,
+  },
+  descripcion: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
+  pagador: { color: colores.primario },
+  tarjetaGasto: { borderLeftWidth: 3, borderLeftColor: colores.acento },
+  tarjetaBalance: { borderLeftWidth: 3, borderLeftColor: colores.balancesPrimario },
   encabezado: { gap: 12, paddingVertical: 12 },
   acciones: { gap: 12, paddingTop: 16 },
   hoja: { flex: 1, backgroundColor: colores.fondo },
   contenidoHoja: { padding: 20, gap: 10 },
   barraHoja: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   titulo: { fontFamily: fuentes.titulos, fontSize: 24, color: colores.texto },
-  tituloSeccion: { fontFamily: fuentes.texto, fontSize: 17, fontWeight: '700', color: colores.texto, marginTop: 8 },
+  tituloSeccion: {
+    fontFamily: fuentes.texto,
+    fontSize: 17,
+    fontWeight: '700',
+    color: colores.balancesPrimario,
+    borderLeftWidth: 4,
+    borderLeftColor: colores.balancesPrimario,
+    paddingLeft: 10,
+    marginTop: 8,
+  },
   subtitulo: { fontFamily: fuentes.texto, fontSize: 16, fontWeight: '700', color: colores.texto },
   texto: { fontFamily: fuentes.texto, fontSize: 15, lineHeight: 21, color: colores.texto },
   suave: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
-  monto: { fontFamily: fuentes.texto, fontSize: 28, fontWeight: '700', color: colores.primarioOscuro },
-  montoFila: { fontFamily: fuentes.texto, fontSize: 17, fontWeight: '700', color: colores.primarioOscuro },
+  monto: { fontFamily: fuentes.texto, fontSize: 28, fontWeight: '700', color: colores.texto },
+  montoFila: { fontFamily: fuentes.texto, fontSize: 17, fontWeight: '700', color: colores.texto },
   flecha: { fontFamily: fuentes.texto, fontSize: 22, color: colores.textoSuave },
   enlace: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   textoEnlace: { fontFamily: fuentes.texto, fontSize: 15, fontWeight: '700', color: colores.primario },
   tarjeta: {
+    ...sombraSuave,
     padding: 16,
     gap: 12,
     borderRadius: 16,
@@ -490,7 +551,7 @@ const s = StyleSheet.create({
     backgroundColor: colores.superficie,
     marginBottom: 10,
   },
-  tarjetaFila: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  tarjetaFila: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
   tarjetaPresionada: { backgroundColor: colores.primarioClaro, borderColor: colores.primario },
   columnaPrincipal: { flex: 1, gap: 4 },
   aviso: {

@@ -37,7 +37,6 @@ import { Avatar } from './Avatar';
 import { Boton } from './Boton';
 import { EstrellasDeValoracion } from './EstrellasDeValoracion';
 import { FormularioDeValoracion } from './FormularioDeValoracion';
-import { EncabezadoDeGastos, FilaDeGastosItem, HojasDeGastos, useVistaDeGastos, type FilaDeGastos } from './GastosDeActividad';
 import { ResumenDeValoraciones, useMisValoraciones, type EstadoMisValoraciones } from './ValoracionesDeActividad';
 import { useSesion } from '../sesion/SesionContexto';
 import { MapaDelRecorrido } from './MapaDelRecorrido';
@@ -50,7 +49,7 @@ export interface ActividadRecienCreada {
 type EstadoPantalla = { tipo: 'cargando' } | { tipo: 'listo'; actividad: DetalleActividad } | ErrorDeActividad;
 
 /** Una fila de la lista del detalle: de la pestaña Participantes o de la pestaña Gastos (CU23–CU25). */
-type FilaDelDetalle = FilaDeParticipantes | FilaDeGastos;
+type FilaDelDetalle = FilaDeParticipantes;
 
 /** CU11 FP paso 10, E1, E2 y E3: resultado de intentar unirse, que se muestra arriba del detalle. */
 type AvisoDeIncorporacion = { tipo: 'exito' | 'error'; mensaje: string } | null;
@@ -81,11 +80,6 @@ export function PantallaDetalleActividad({
   const { sesion } = useSesion();
   const usuarioActualId = sesion?.usuario.id ?? null;
   const [pestanaActiva, setPestanaActiva] = useState<PestanaDeActividad>('participantes');
-  // CU23–CU25: los gastos se piden la primera vez que se abre su pestaña y se conservan al cambiar de pestaña
-  const [gastosAbiertos, setGastosAbiertos] = useState(false);
-  const puedeVerGastos = actividad?.opciones.includes('verGastos') ?? false;
-  const gastos = useVistaDeGastos(actividadId, gastosAbiertos && puedeVerGastos);
-  const enGastos = pestanaActiva === 'gastos' && puedeVerGastos;
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [aviso, setAviso] = useState<AvisoDeIncorporacion>(null);
   const recargarParticipantes = participantes.recargar;
@@ -103,10 +97,9 @@ export function PantallaDetalleActividad({
   }, [actividadId, recargar, recargarParticipantes]);
   // Una sola lista para las dos pestañas con contenido; lo cargado de cada una se conserva al cambiar de pestaña.
   // CU09 A1: los invitados externos tienen fila propia, debajo de quien los trae
-  const filasVisibles: FilaDelDetalle[] = filasDePestana(pestanaActiva, participantes.lista, enGastos ? gastos.filas : []);
+  const filasVisibles: FilaDelDetalle[] = pestanaActiva === 'participantes' ? filasDeParticipantes(participantes.lista) : [];
 
   function elegirPestana(pestana: PestanaDeActividad) {
-    if (pestana === 'gastos') setGastosAbiertos(true);
     setPestanaActiva(pestana);
   }
 
@@ -161,7 +154,7 @@ export function PantallaDetalleActividad({
           if (item.tipo === 'invitado') {
             return <FilaDeInvitado nombre={item.nombre} invitadoPor={item.invitadoPor} />;
           }
-          return <FilaDeGastosItem fila={item} vista={gastos} />;
+          return null;
         }}
         contentContainerStyle={estilos.contenido}
         ListHeaderComponent={
@@ -182,7 +175,6 @@ export function PantallaDetalleActividad({
             {valoraciones && pestanaActiva === 'participantes' ? (
               <ResumenDeValoraciones valoraciones={valoraciones} aviso={avisoDeValoracion} />
             ) : null}
-            {enGastos ? <EncabezadoDeGastos vista={gastos} /> : null}
           </>
         }
         ListFooterComponent={
@@ -193,7 +185,6 @@ export function PantallaDetalleActividad({
       />
 
       {actividad ? <BarraDeAccionPrincipal actividad={actividad} /> : null}
-      {enGastos ? <HojasDeGastos vista={gastos} /> : null}
       {actividad ? <MenuDeOpciones actividad={actividad} visible={menuAbierto} alCerrar={() => setMenuAbierto(false)} /> : null}
       {valorando ? (
         <FormularioDeValoracion
@@ -510,8 +501,19 @@ function DetalleDeLaActividad(props: PropsDetalle) {
       {actividad.opciones.includes('verMapa') ? (
         <MapaDelRecorrido origen={actividad.origen} destino={actividad.destino} puntosDePartida={puntosDePartida} />
       ) : null}
+      {actividad.opciones.includes('verGastos') ? (
+        <View style={estilos.seccionGastos}>
+          <Text style={estilos.tituloGastos}>Gastos de la actividad</Text>
+          <Text style={estilos.textoSuave}>Cada gasto y su reparto actualizan los balances juntos.</Text>
+          <Boton
+            texto="Abrir gastos de la actividad"
+            tono="finanzas"
+            alPresionar={() => router.push({ pathname: '/actividades/[id]/gastos', params: { id: actividad.id } })}
+          />
+        </View>
+      ) : null}
 
-      {/* Participantes (A1), Chat y Gastos; la lista de participantes sigue debajo de este encabezado */}
+      {/* Participantes (A1) y Chat; la lista de participantes sigue debajo de este encabezado */}
       <View onLayout={(evento) => alUbicarPestanas(evento.nativeEvent.layout.y)}>
         <BarraDePestanas {...props} />
       </View>
@@ -724,26 +726,8 @@ interface PropsPie {
   participantes: EstadoParticipantes;
 }
 
-/**
- * Filas de la pestaña activa. Participantes y Gastos comparten la FlatList del detalle (una sola lista virtualizada);
- * Chat no tiene filas todavía.
- */
-function filasDePestana(
-  pestana: PestanaDeActividad,
-  listaDeParticipantes: ParticipanteDeActividad[],
-  filasDeGastos: FilaDeGastos[],
-): FilaDelDetalle[] {
-  if (pestana === 'participantes') return filasDeParticipantes(listaDeParticipantes);
-  if (pestana === 'gastos') return filasDeGastos;
-  return [];
-}
-
 /** Debajo de la lista: en "Participantes", la carga y "Ver más" (A1); en Chat, su caso de uso pendiente. */
 function PieDelDetalle({ actividad, pestanaActiva, participantes }: PropsPie) {
-  // Gastos resuelve su carga y "Ver más gastos" dentro de sus propias filas
-  if (pestanaActiva === 'gastos') {
-    return null;
-  }
   const definicion = pestanasDisponibles(actividad.opciones).find(({ pestana }) => pestana === pestanaActiva);
   if (definicion === undefined) {
     return null;
@@ -857,6 +841,17 @@ function AvisoDeError({ mensaje, reintentar }: { mensaje: string; reintentar: ()
 }
 
 const estilos = StyleSheet.create({
+  seccionGastos: {
+    padding: 18,
+    gap: 14,
+    borderWidth: 1,
+    borderTopWidth: 4,
+    borderColor: colores.borde,
+    borderTopColor: colores.finanzasPrimario,
+    borderRadius: 18,
+    backgroundColor: colores.finanzasSuave,
+  },
+  tituloGastos: { fontFamily: fuentes.titulos, fontSize: 20, color: colores.finanzasFuerte },
   pantalla: { flex: 1, backgroundColor: colores.fondo },
   barraSuperior: {
     flexDirection: 'row',

@@ -8,7 +8,7 @@ import type { Balance } from '../api/gastos';
 import type { Pago } from '../api/pagos';
 import { nombrePersona } from '../comun/gastos';
 import { formatearMonto, formatearFechaHora } from '../comun/formato';
-import { colores, fuentes } from '../comun/tema';
+import { colores, fuentes, sombraSuave } from '../comun/tema';
 import { usePagos } from '../hooks/usePagos';
 import { Boton } from './Boton';
 import { TituloConVolver } from './TituloConVolver';
@@ -144,20 +144,23 @@ export function PagosDeActividad({
         }
         ListHeaderComponent={
           <View style={s.acciones}>
-            <TituloConVolver
-              titulo={pago ? 'Detalle del pago' : 'Pagos y balances'}
-              etiqueta={pago ? 'Volver a pagos' : 'Volver a gastos'}
-              deshabilitado={bloqueado}
-              alVolver={() => {
-                if (pago) setPago(null);
-                else router.back();
-              }}
-            />
+            <View style={s.presentacion}>
+              <TituloConVolver
+                titulo={pago ? 'Detalle del pago' : 'Pagos y balances'}
+                etiqueta={pago ? 'Volver a pagos' : 'Volver a gastos'}
+                deshabilitado={bloqueado}
+                alVolver={() => {
+                  if (pago) setPago(null);
+                  else router.back();
+                }}
+              />
+            </View>
             {estado}
             {!!avisoInicial && <Text style={s.aviso}>{avisoInicial}</Text>}
             {modelo.cargando && <Text style={s.texto}>Cargando pagos…</Text>}
             {!modelo.pendiente && (
               <Boton
+                tono="balances"
                 texto="Actualizar pagos y balances"
                 variante="secundario"
                 deshabilitado={bloqueado}
@@ -225,6 +228,7 @@ export function PagosDeActividad({
                 <Text style={s.monto}>{formatearMonto(item.balance.montoCentesimos)}</Text>
                 {modelo.opciones?.puedeEscribir && (
                   <Boton
+                    tono="balances"
                     texto="Registrar pago"
                     variante="secundario"
                     deshabilitado={bloqueado}
@@ -307,14 +311,34 @@ export function PagosDeActividad({
   );
 }
 const s = StyleSheet.create({
+  presentacion: {
+    padding: 18,
+    borderWidth: 1,
+    borderTopWidth: 4,
+    borderColor: colores.borde,
+    borderTopColor: colores.balancesPrimario,
+    borderRadius: 18,
+    backgroundColor: colores.balancesSuave,
+  },
   pantalla: { flex: 1, backgroundColor: colores.fondo },
   contenido: { padding: 20, gap: 14 },
   acciones: { gap: 14, paddingVertical: 10 },
-  subtitulo: { fontFamily: fuentes.texto, fontWeight: '700', fontSize: 18, color: colores.texto },
+  subtitulo: {
+    fontFamily: fuentes.texto,
+    fontWeight: '700',
+    fontSize: 18,
+    color: colores.balancesPrimario,
+    borderLeftWidth: 4,
+    borderLeftColor: colores.balancesPrimario,
+    paddingLeft: 10,
+  },
   texto: { fontFamily: fuentes.texto, fontSize: 16, color: colores.texto },
   suave: { fontFamily: fuentes.texto, fontSize: 14, color: colores.textoSuave },
-  monto: { fontFamily: fuentes.texto, fontWeight: '700', fontSize: 21, color: colores.primarioOscuro },
+  monto: { fontFamily: fuentes.texto, fontWeight: '700', fontSize: 21, color: colores.texto },
   tarjeta: {
+    ...sombraSuave,
+    borderLeftWidth: 3,
+    borderLeftColor: colores.balancesPrimario,
     padding: 18,
     gap: 12,
     borderRadius: 16,
