@@ -88,6 +88,8 @@ export interface OrganizadorEncontrado {
 }
 
 export interface ResultadoDeBusqueda {
+  /** CU42 A4: la API consulta si el usuario pertenece a una actividad iniciada que comienza hoy en Uruguay. */
+  hayIniciadasHoy?: boolean;
   actividades: ActividadEncontrada[];
   pagina: number;
   hayMas: boolean;
@@ -184,6 +186,24 @@ export interface ParticipanteDeActividad {
 
 export interface PaginaDeParticipantes {
   participantes: ParticipanteDeActividad[];
+  pagina: number;
+  hayMas: boolean;
+}
+
+/** CU42: actividades propias en estado Iniciada. */
+export interface ActividadIniciada {
+  id: string;
+  nombre: string;
+  deporte: { id: number; nombre: string };
+  estado: 'iniciada';
+  fechaHoraInicio: string;
+  fechaLimiteGastos: string;
+  departamento: string;
+  esOrganizador: boolean;
+}
+
+export interface ResultadoDeIniciadas {
+  actividades: ActividadIniciada[];
   pagina: number;
   hayMas: boolean;
 }

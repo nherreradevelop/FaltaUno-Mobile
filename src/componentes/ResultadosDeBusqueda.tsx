@@ -7,6 +7,7 @@ import { MENSAJE_SIN_ACTIVIDADES } from '../comun/mensajesExplorar';
 import { colores, fuentes } from '../comun/tema';
 import { terminoLaPrimeraCarga, useActividadesPorGrupo } from '../comun/useActividadesPorGrupo';
 import { Boton } from './Boton';
+import { BannerActividadesHoy } from './BannerActividadesHoy';
 import { EsqueletoDeActividades } from './EsqueletoDeActividades';
 import { TarjetaActividad } from './TarjetaActividad';
 
@@ -108,6 +109,7 @@ export function ResultadosDeBusqueda({ filtros, ubicacion }: PropsResultados) {
       )}
       stickySectionHeadersEnabled={false}
       contentContainerStyle={estilos.contenido}
+      ListHeaderComponent={otras.hayIniciadasHoy ? <BannerActividadesHoy /> : undefined}
       renderSectionHeader={({ section }) => (
         <Text accessibilityRole="header" style={estilos.titulo}>
           {section.titulo}
