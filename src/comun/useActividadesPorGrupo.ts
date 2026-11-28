@@ -9,6 +9,7 @@ interface EstadoResultados {
   paginaPedida: number;
   paginaCargada: number;
   hayMas: boolean;
+  hayIniciadasHoy: boolean;
   cargando: boolean;
   error: string | null;
 }
@@ -18,6 +19,7 @@ const estadoInicial = (clave: string): EstadoResultados => ({
   paginaPedida: 1,
   paginaCargada: 0,
   hayMas: false,
+  hayIniciadasHoy: false,
   cargando: true,
   error: null,
 });
@@ -59,6 +61,7 @@ export function useActividadesPorGrupo(
           actividades: [...anterior.actividades, ...resultado.actividades],
           paginaCargada: resultado.pagina,
           hayMas: resultado.hayMas,
+          hayIniciadasHoy: resultado.hayIniciadasHoy === true,
           cargando: false,
         }));
       })

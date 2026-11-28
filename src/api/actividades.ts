@@ -70,13 +70,14 @@ function esActividadEncontrada(valor: unknown): valor is ActividadEncontrada {
 }
 
 /** CU08 ER4: valida la forma de la respuesta antes de mostrarla. */
-function validarResultado(valor: unknown): ResultadoDeBusqueda {
+function validarResultado(valor: unknown, requiereAvisoDeHoy: boolean): ResultadoDeBusqueda {
   const resultado = valor as Partial<ResultadoDeBusqueda> | null;
   const esValido =
     Array.isArray(resultado?.actividades) &&
     resultado.actividades.every(esActividadEncontrada) &&
     typeof resultado.pagina === 'number' &&
-    typeof resultado.hayMas === 'boolean';
+    typeof resultado.hayMas === 'boolean' &&
+    (!requiereAvisoDeHoy || typeof resultado.hayIniciadasHoy === 'boolean');
   if (!esValido) {
     throw new ErrorApi(0, 'RESPUESTA_INVALIDA', MENSAJE_RESPUESTA_INVALIDA);
   }
@@ -93,7 +94,7 @@ export async function buscarActividades(
   const parametros = aParametrosDeBusqueda(filtros, pagina, ubicacion);
   if (grupo) parametros.set('grupo', grupo);
   const respuesta = await pedir<unknown>(`/api/actividades?${parametros.toString()}`);
-  return validarResultado(respuesta);
+  return validarResultado(respuesta, grupo === 'otras');
 }
 
 /** CU08 A5: opciones del filtro de departamento. */

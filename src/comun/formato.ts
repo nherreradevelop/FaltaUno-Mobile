@@ -172,3 +172,11 @@ export function urlDeMapaEmbebido(origen: Coordenadas, destino: Coordenadas): st
   }
   return `https://maps.google.com/maps?saddr=${aTexto(origen)}&daddr=${aTexto(destino)}&output=embed`;
 }
+
+/** CU42: etiqueta del día de inicio según Uruguay, aunque el dispositivo use otra zona horaria. */
+export function esHoyEnUruguay(fechaIso: string, ahora = new Date()): boolean {
+  const inicio = new Date(fechaIso);
+  if (Number.isNaN(inicio.getTime())) return false;
+  const opciones = { timeZone: ZONA_HORARIA, year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+  return inicio.toLocaleDateString('es-UY', opciones) === ahora.toLocaleDateString('es-UY', opciones);
+}
